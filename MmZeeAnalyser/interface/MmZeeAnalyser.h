@@ -1,0 +1,63 @@
+#ifndef GsfElectronDataAnalyzer_h
+#define GsfElectronDataAnalyzer_h
+
+
+
+// system include files
+#include <memory>
+
+// user include files
+#include "FWCore/Framework/interface/Frameworkfwd.h"
+#include "FWCore/Framework/interface/EDAnalyzer.h"
+
+#include "FWCore/Framework/interface/Event.h"
+#include "FWCore/Framework/interface/MakerMacros.h"
+
+#include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "FWCore/Utilities/interface/InputTag.h"
+//#include "DataFormats/TrackReco/interface/Track.h"
+//#include "DataFormats/TrackReco/interface/TrackFwd.h"
+
+#include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "FWCore/Framework/interface/EDAnalyzer.h"
+#include "FWCore/Framework/interface/Event.h"
+#include "FWCore/Framework/interface/MakerMacros.h"
+#include "FWCore/MessageLogger/interface/MessageLogger.h"
+#include "DataFormats/GsfTrackReco/interface/GsfTrack.h"
+#include "DataFormats/EgammaCandidates/interface/GsfElectron.h"
+#include "DataFormats/EgammaCandidates/interface/GsfElectronFwd.h"
+#include "DataFormats/EgammaReco/interface/BasicClusterFwd.h"
+#include "DataFormats/EgammaReco/interface/SuperClusterFwd.h"
+#include "DataFormats/JetReco/interface/CaloJetCollection.h"
+#include "DataFormats/EcalDetId/interface/EcalSubdetector.h"
+#include "DataFormats/FWLite/interface/Event.h"
+
+
+
+#include "FWCore/MessageLogger/interface/MessageLogger.h"
+
+using namespace edm;
+using namespace std;
+using namespace cms;
+
+
+class MmZeeAnalyser : public edm::EDAnalyzer
+{
+ public:
+  MmZeeAnalyser(const edm::ParameterSet&);
+  ~MmZeeAnalyser();
+
+
+ private:
+  virtual void beginJob(const edm::EventSetup&) ;
+  virtual void analyze(const edm::Event&, const edm::EventSetup&);
+  virtual void endJob() ;
+  
+      // ----------member data ---------------------------
+  // edm::InputTag trackTags_; //used to select what tracks to read from configuration file
+  edm::InputTag electronCollection_;
+};
+
+
+
+#endif
