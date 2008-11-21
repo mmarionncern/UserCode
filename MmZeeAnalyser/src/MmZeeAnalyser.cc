@@ -13,7 +13,7 @@
 //
 // Original Author:  Matthieu Marionneau
 //         Created:  Mon Nov 10 14:59:45 CET 2008
-// $Id$
+// $Id: MmZeeAnalyser.cc,v 1.1 2008/11/19 15:13:08 mmarionn Exp $
 //
 //
 
@@ -61,7 +61,7 @@ using namespace cms;
 MmZeeAnalyser::MmZeeAnalyser(const edm::ParameterSet& iConfig):
 
   //trackTags_(iConfig.getUntrackedParameter<edm::InputTag>("tracks")),
-  electronCollection_(iConfig.getUntrackedParameter<edm::InputTag>("gsfElectrons"))
+  electronCollection_(iConfig.getUntrackedParameter<edm::InputTag>("electronCollection_"))
 {
    //now do what ever initialization is needed
 
@@ -93,13 +93,13 @@ MmZeeAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    
    cout << "analyzing new event " <<endl;
    
-   using reco::GsfElectronCollection;
+    using reco::GsfElectronCollection;
    
    edm::Handle<GsfElectronCollection> gsfElectrons;
    iEvent.getByLabel(electronCollection_, gsfElectrons);
    edm::LogInfo("")<<"\n\n =================> Treating event "<<iEvent.id()<<" Number of electrons "<<gsfElectrons.product()->size();
    
-   
+       
    
    for(GsfElectronCollection::const_iterator itElec = gsfElectrons->begin();
        itElec != gsfElectrons->end();
@@ -108,9 +108,7 @@ MmZeeAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
        
        cout<<" test "<<itElec->isElectron()<<"  "<<itElec->gsfTrack().index() <<endl;
        
-       
-       
-     }
+       }
    
 
 
