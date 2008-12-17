@@ -13,7 +13,7 @@
 //
 // Original Author:  Matthieu Marionneau
 //         Created:  Mon Nov 10 14:59:45 CET 2008
-// $Id: MmZeeAnalyser.cc,v 1.1 2008/11/19 15:13:08 mmarionn Exp $
+// $Id: MmZeeAnalyser.cc,v 1.2 2008/11/21 17:13:04 mmarionn Exp $
 //
 //
 
@@ -65,6 +65,11 @@ MmZeeAnalyser::MmZeeAnalyser(const edm::ParameterSet& iConfig):
 {
    //now do what ever initialization is needed
 
+  /*Electron_charge = book1D("ChargeElectron",
+			   "Charge Distribution",
+			   5,-1.5,1.5);
+  */
+
 }
 
 // Destructors
@@ -88,6 +93,10 @@ MmZeeAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
    using namespace edm;
 
+   //Initialisation
+   for(int i=0;i<5;i++)
+     Candidate[i] = 0;
+
    
    //Electron Recognition
    
@@ -99,19 +108,23 @@ MmZeeAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    iEvent.getByLabel(electronCollection_, gsfElectrons);
    edm::LogInfo("")<<"\n\n =================> Treating event "<<iEvent.id()<<" Number of electrons "<<gsfElectrons.product()->size();
    
-       
-   
+   //Evaluation of the NumberElectron_ value    
+   NumberElectrons(gsfElectrons);
+  
    for(GsfElectronCollection::const_iterator itElec = gsfElectrons->begin();
        itElec != gsfElectrons->end();
        itElec++) 
      {
+       cout<<" test "<<itElec->isElectron()<<"  "<<itElec->gsfTrack().index() 
+	   <<"   "<<itElec->charge()<<"  "<<itElec->energy()<<"  "<<itElec->pt()  <<endl;
        
-       cout<<" test "<<itElec->isElectron()<<"  "<<itElec->gsfTrack().index() <<endl;
        
-       }
+       // fill(Electron_charge,itElec->charge());
+     }
    
+   cout<<" Number of electrons  "<<NumberElectron_<<" ; Event  "<<iEvent.id()<<endl;
 
-
+   ZeeCandidate(gsfElectrons);
 
   /*
 #ifdef THIS_IS_AN_EVENT_EXAMPLE
@@ -139,6 +152,81 @@ MmZeeAnalyser::beginJob(const edm::EventSetup&)
 void 
 MmZeeAnalyser::endJob() {
 }
+
+
+//--------------------- Finding best "Z to ee" candidate in the event
+void 
+MmZeeAnalyser::ZeeCandidate(const  edm::Handle<reco::GsfElectronCollection>& gsfElectrons)
+{
+  using reco::GsfElectronCollection;
+
+  int numCandidate=0;
+
+ 
+
+  if(NumberElectron_<2)
+    {
+      cout<<" No Z reconstruction possibility in this event "<<endl;
+      return;
+    }
+
+  else
+    {
+      for(GsfElectronCollection::const_iterator itElec = gsfElectrons->begin();
+	  itElec != gsfElectrons->end(); itElec++) 
+	{
+	  if(itElec->charge() == -1){
+	    
+	  
+
+	    for(GsfElectronCollection::const_iterator itPosi = gsfElectrons->begin();
+		itPosi != gsfElectrons->end(); itPosi++) 
+	    {
+	      if(itPosi->charge() == 1)
+		{
+		  Candidate[numCandidate]= itElec->gsfTrack().index() 
+		                         + 1000*(itPosi->gsfTrack().index());
+		  numCandidate++;
+		
+		}
+	    } 
+	  }
+     	}
+     
+
+      for(int i=0;i<numCandidate;i++)
+	{
+	
+	  cout<<" Candidat Zee : Positron "<<Candidate[i]%1000
+	      <<"  ; Electron "<<Candidate[i]-Candidate[i]*1000
+	      <<endl;
+	}
+    }
+     
+}
+
+
+//----------------------- Method called to looking for the number of electrons
+void
+MmZeeAnalyser::NumberElectrons(const  edm::Handle<reco::GsfElectronCollection>& gsfElectrons) 
+{
+  using reco::GsfElectronCollection;
+  NumberElectron_ = 0;
+  int tmp_number=0;
+
+  for(GsfElectronCollection::const_iterator itElec = gsfElectrons->begin();
+      itElec != gsfElectrons->end();  itElec++) 
+    tmp_number++;
+
+  NumberElectron_ = tmp_number;
+}
+
+
+
+
+
+
+
 
 //define this as a plug-in
 DEFINE_FWK_MODULE(MmZeeAnalyser);
