@@ -118,7 +118,7 @@ class MmZeeAnalyser : public edm::EDAnalyzer
   // General functions
 
   bool MCTruth(const reco::CompositeCandidate& Zee,
-	       double deltaPt[2], double deltaZMass);
+	       double deltaPt[2], double& deltaZMass);
 
   // Zee analyse functions
   vector<reco::CompositeCandidate> ClassZeeCandidate(const  reco::CompositeCandidateCollection& ZeeCandidates);

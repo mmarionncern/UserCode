@@ -13,7 +13,7 @@
 //
 // Original Author:  Matthieu Marionneau
 //         Created:  Mon Nov 10 14:59:45 CET 2008
-// $Id: MmZeeAnalyser.cc,v 1.4 2009/01/23 13:49:18 mmarionn Exp $
+// $Id: MmZeeAnalyser.cc,v 1.5 2009/01/23 15:12:51 mmarionn Exp $
 //
 //
 #include "MMarionneau/MmZeeAnalyser/interface/MmZeeAnalyser.h"
@@ -208,7 +208,7 @@ MmZeeAnalyser::MmZeeAnalyser(const edm::ParameterSet& iConfig):
   deltaMassMC_Z = book1D("deltaMassMC_Z",
 			 "#DeltaMass mc/pat of the Z candidate;"
 			 "#DeltaM;NEvts",
-			 80,0.,4.);
+			 80,0.,40.);
   
   
 }
@@ -258,7 +258,7 @@ MmZeeAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	 {
 	   fill(deltaMassMC_Z,deltaZMass);
 	   fill(deltaPtMC_dau_0,deltaPt[0]);
-	   fill(deltaPtMC_dau_1,deltaPt[2]);
+	   fill(deltaPtMC_dau_1,deltaPt[1]);
 	 }
        else 
 	 {
@@ -266,7 +266,8 @@ MmZeeAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	   cout<<"Warning, Zee is not validated by MCTruth : "
 	      <<" #Evt = "<<EventNumber_<<" ; Numero of Z  "<<iZee+1<<endl;
 	 cout<<"Classification of Z "<<ZeeConfLvlFromElec(ClassifiedZColl[iZee])
-	     <<" mass "<<ClassifiedZColl[iZee].mass()<<endl;
+	     <<" mass "<<ClassifiedZColl[iZee].mass()<<" ; Collsize "
+	     <<ClassifiedZColl.size()<<endl;
 	 }
        if(ZeeConfLvlFromElec(ClassifiedZColl[0])>1)
 	 {
@@ -487,7 +488,7 @@ bool MmZeeAnalyser::registerHist(const std::string& name,
 
 bool MmZeeAnalyser::MCTruth(const reco::CompositeCandidate& Zee,
 			    double deltaPt[2],
-			    double deltaZMass){
+			    double& deltaZMass){
   using namespace reco;
   
   bool mctruth=false;
@@ -516,6 +517,7 @@ bool MmZeeAnalyser::MCTruth(const reco::CompositeCandidate& Zee,
 		   deltaPt[0] = abs(originalElectron1->pt() - match1->pt());
 		   deltaPt[1] = abs(originalElectron2->pt() - match2->pt());
 		   deltaZMass = abs(Zee.mass()-mother_lvl2_1->mass());
+		  
 		   mctruth=true;
 		   fill(MCTruth_Mass, mother_lvl2_1->mass());
 		 }
