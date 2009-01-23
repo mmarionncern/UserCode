@@ -8,21 +8,16 @@
 
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
-#include "FWCore/Framework/interface/EDAnalyzer.h"
-
-#include "FWCore/Framework/interface/Event.h"
-#include "FWCore/Framework/interface/MakerMacros.h"
-
-#include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Utilities/interface/InputTag.h"
-//#include "DataFormats/TrackReco/interface/Track.h"
-//#include "DataFormats/TrackReco/interface/TrackFwd.h"
-
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Framework/interface/EDAnalyzer.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
+
+#include "DataFormats/Candidate/interface/CompositeRefCandidate.h"
+#include "DataFormats/Candidate/interface/CandMatchMap.h"
+#include "DataFormats/Candidate/interface/CompositeCandidate.h"
 #include "DataFormats/GsfTrackReco/interface/GsfTrack.h"
 #include "DataFormats/EgammaCandidates/interface/GsfElectron.h"
 #include "DataFormats/EgammaCandidates/interface/GsfElectronFwd.h"
@@ -37,6 +32,10 @@
 
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 
+
+
+#include <utility>
+
 class DQMStore;
 class MonitorElement;
 
@@ -48,6 +47,7 @@ using namespace cms;
 
  //Z mass (GeV)
 static const double mZ0= 91.19;
+static const double myPi=acos(-1);
 
 
 class MmZeeAnalyser : public edm::EDAnalyzer
@@ -65,30 +65,68 @@ class MmZeeAnalyser : public edm::EDAnalyzer
 
  private: //  -----------  member data --------------
  
-  edm::InputTag electronCollection_;
-
+  InputTag electronCollectionTag_;
+  InputTag ZCandCollectionTag_;
+  /*  InputTag ZRefCandCollectionTag_;
+  InputTag ElectronMCTruthTag_;
+  InputTag ZeeMCTruthTag_;*/
  
 
   //Number of electron in the event
   int NumberElectron_;
 
+  int EventNumber_;
+
   //Zee Candidates
-  int Candidate[5];
+  // int Candidate[5];
 
   //Histogrammes
-  MonitorElement* Electron_charge;
+  MonitorElement* Mass_Z_HCL;
+  MonitorElement* Mass_Z_LCL;
+  
+  MonitorElement* Pt_Z_HCL;
+  MonitorElement* Eta_Z_HCL;
+  MonitorElement* Phi_Z_HCL;
+  
+  MonitorElement* LevelConf_Z;
+  MonitorElement* MCFalse_LevelConf_Z;
 
+  MonitorElement* PtvsdPhi_Z;
 
+  MonitorElement* Pt_dau_0;
+  MonitorElement* Eta_dau_0;
+  MonitorElement* Phi_dau_0;
+  MonitorElement* Class_dau_0 ;
+  MonitorElement* deltaPtMC_dau_0;
+  MonitorElement* Pt_dau_1;
+  MonitorElement* Eta_dau_1;
+  MonitorElement* Phi_dau_1;
+  MonitorElement* Class_dau_1;
+  MonitorElement* deltaPtMC_dau_1;
+ 
+  MonitorElement* dPhi_dau;
+
+  MonitorElement* deltaMassMC_Z;
+
+ 
  private: //  -----------  functions ---------------
   virtual void beginJob(const edm::EventSetup&) ;
   virtual void analyze(const edm::Event&, const edm::EventSetup&);
   virtual void endJob() ;
 
   // General functions
-  void NumberElectrons(const  edm::Handle<reco::GsfElectronCollection>& gsfElectrons);
+
+  bool MCTruth(const reco::CompositeCandidate& Zee,
+	       double deltaPt[2], double deltaZMass);
 
   // Zee analyse functions
-  void ZeeCandidate(const  edm::Handle<reco::GsfElectronCollection>& gsfElectrons);
+  vector<reco::CompositeCandidate> ClassZeeCandidate(const  reco::CompositeCandidateCollection& ZeeCandidates);
+
+  //Zee Confidence level calculation with electron conditions
+  int ZeeConfLvlFromElec(const reco::CompositeCandidate& Zee);
+
+  //Electron analyze functions
+  void ElectronFromZAnalysis(const reco::CompositeCandidate& Zee);
 
  // Wrapper to fill methods of DQM monitor elements.
    
@@ -109,7 +147,7 @@ class MmZeeAnalyser : public edm::EDAnalyzer
   // Wrappers to the book methods of the DQMStore DQM
   //  histogramming interface.
   
-  MonitorElement* book1D(const std::string& name,
+    MonitorElement* book1D(const std::string& name,
 			 const std::string& title, int nbins,
 			 double xmin, double xmax);
  
@@ -127,8 +165,42 @@ class MmZeeAnalyser : public edm::EDAnalyzer
 				int nbinx, double xmin, double xmax,
 				int nbiny, double ymin, double ymax,
 				const char* option = "");
+  
+ /** List of enabled histograms. Special name "all" is used to indicate
+   * all available histograms.
+   */
+  std::set<std::string> histList_;
 
+  /** When true, every histogram is enabled.
+   */
+  bool allHists_;
 
+  /** Histogram directory PATH in DQM or within the output ROOT file
+   */
+  std::string histDir_;
+  
+  /** List of available histograms. Filled by the booking methods.
+   * key: name, value: title.
+   */
+  std::map<std::string, std::string> availableHistList_;
+
+  /** Register a histogram in the available histogram list and check if
+   * the histogram is enabled. Called by the histogram booking methods.
+   * @return true if the histogram is enable, false otherwise
+   */
+  bool registerHist(const std::string& name, const std::string& title);
+
+  /** Prints the list of available histograms
+   * (registered by the registerHist method), including disabled one.
+   */
+  void printAvailableHists();
+
+  ///Histogramming interface
+  DQMStore* dbe_;
+  
+  ///Output file for histograms
+  std::string outputFile_;
+  
   
  
 };
