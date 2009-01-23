@@ -81,6 +81,7 @@ class MmZeeAnalyser : public edm::EDAnalyzer
   // int Candidate[5];
 
   //Histogrammes
+  MonitorElement* MCTruth_Mass;
   MonitorElement* Mass_Z_HCL;
   MonitorElement* Mass_Z_LCL;
   

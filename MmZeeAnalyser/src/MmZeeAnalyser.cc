@@ -13,7 +13,7 @@
 //
 // Original Author:  Matthieu Marionneau
 //         Created:  Mon Nov 10 14:59:45 CET 2008
-// $Id: MmZeeAnalyser.cc,v 1.3 2008/12/17 09:13:21 mmarionn Exp $
+// $Id: MmZeeAnalyser.cc,v 1.4 2009/01/23 13:49:18 mmarionn Exp $
 //
 //
 #include "MMarionneau/MmZeeAnalyser/interface/MmZeeAnalyser.h"
@@ -106,18 +106,21 @@ MmZeeAnalyser::MmZeeAnalyser(const edm::ParameterSet& iConfig):
   if(histList_.find("all") != histList_.end()) allHists_ = true;
 
   
-
+  MCTruth_Mass =  book1D("MassofZMC",
+			 "mass of Z from MCTruth;"
+			 "Mass;Nevts",
+			 200, 0., 200.);
 
 
   Mass_Z_HCL = book1D("MassofZforHCL",
 		     "mass of Z reconstructed with CL of 4, 3 or 2;"
 		     "Mass;Nevts",
-		     100, 0., 200.);
+		     200, 0., 200.);
 
   Mass_Z_LCL = book1D("MassofZforLCL",
 		     "mass of Z reconstructed with CL of 1;"
 		     "Mass;Nevts",
-		     100, 0., 200.);
+		     200, 0., 200.);
 
   Pt_Z_HCL = book1D("PtofZforHCL",
 		    "Pt of Z reconstructed with CL of 4, 3 or 2;"
@@ -133,7 +136,7 @@ MmZeeAnalyser::MmZeeAnalyser(const edm::ParameterSet& iConfig):
 		     64, -3.2, 3.2);
   
   LevelConf_Z = book1D("LevelConfforZ",
-			"Confidence Level of Z;"
+		       "Confidence Level of Z;"
 		       "CL;Nevts",
 		       5,-0.5,4.5);
 
@@ -145,7 +148,7 @@ MmZeeAnalyser::MmZeeAnalyser(const edm::ParameterSet& iConfig):
   PtvsdPhi_Z = book2D("PtVsdPhiforZ",
 		      "Pt vs dphi of Z;"
 		      "Pt;dPhi",
-		      100,0.,200.,90,-1.,181.);
+		      100,0.,200.,92,-3.,183.);
   
   Pt_dau_0 = book1D("Ptofdaughter_0",
 		     "Pt of the daughter 1;"
@@ -160,7 +163,7 @@ MmZeeAnalyser::MmZeeAnalyser(const edm::ParameterSet& iConfig):
   Phi_dau_0 = book1D("Phiofdaughter_0",
 		     "Phi of the daughter 1;"
 		      "Phi;Nevts",
-		      180, -181., 181.);
+		      182, -183., 183.);
  
   Class_dau_0 = book1D("Classificationofdaughter_0",
 		       "Classification of the daughter 1;"
@@ -185,7 +188,7 @@ MmZeeAnalyser::MmZeeAnalyser(const edm::ParameterSet& iConfig):
   Phi_dau_1 = book1D("Phiofdaughter_1",
 		     "Phi of the daughter 2;"
 		     "Phi;Nevts",
-		      180, -181., 181.);
+		      182, -183., 183.);
   
   Class_dau_1 = book1D("Classificationofdaughter_1",
 		       "Classification of the daughter 2;"
@@ -200,13 +203,14 @@ MmZeeAnalyser::MmZeeAnalyser(const edm::ParameterSet& iConfig):
   dPhi_dau =  book1D("dPhidaughters",
 		     "#Delta#Phi between daughters ;"
 		     "dPhi;Nevts",
-		     90, -1., 181);
+		     92, -3., 183);
 
   deltaMassMC_Z = book1D("deltaMassMC_Z",
 			 "#DeltaMass mc/pat of the Z candidate;"
 			 "#DeltaM;NEvts",
 			 80,0.,4.);
-
+  
+  
 }
 
 // Destructors
@@ -291,6 +295,10 @@ MmZeeAnalyser::beginJob(const edm::EventSetup&)
 
 void 
 MmZeeAnalyser::endJob() {
+
+  cout<<endl;
+  cout<<"Number of event : "<<EventNumber_<<endl;
+
 }
 
 
@@ -335,7 +343,6 @@ MmZeeAnalyser::ClassZeeCandidate(const  reco::CompositeCandidateCollection& ZeeC
 	      ClassifiedZColl.push_back(Zee);
 	      goodZCand++;
 	    }
-	 
 	}
 
       for(int i=0;i<goodZCand;i++){
@@ -510,6 +517,7 @@ bool MmZeeAnalyser::MCTruth(const reco::CompositeCandidate& Zee,
 		   deltaPt[1] = abs(originalElectron2->pt() - match2->pt());
 		   deltaZMass = abs(Zee.mass()-mother_lvl2_1->mass());
 		   mctruth=true;
+		   fill(MCTruth_Mass, mother_lvl2_1->mass());
 		 }
 	       else
 		 mctruth=false;
@@ -543,6 +551,12 @@ void MmZeeAnalyser::ElectronFromZAnalysis(const reco::CompositeCandidate& Zee){
   fill( Pt_dau_1,originalElectron2->pt());
   fill( Eta_dau_1,originalElectron2->eta());
   fill( Phi_dau_1,originalElectron2->phi()*180/myPi);
+
+  double Dphi = abs((originalElectron1->phi()*180/myPi)
+		    -(originalElectron2->phi()*180/myPi));
+
+  fill(dPhi_dau,Dphi);
+  fill( PtvsdPhi_Z,Zee.pt(),Dphi);
 
   return;
 }
