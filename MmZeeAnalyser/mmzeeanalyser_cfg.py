@@ -7,7 +7,6 @@ import FWCore.ParameterSet.Config as cms
 
 process = cms.Process("MmZeeAnalysis")
 
-
 #Message Logger
 #process.load("FWCore.MessageService.MessageLogger_cfi")
 #process.MessageLogger.cerr.INFO.limit = 10
@@ -29,21 +28,10 @@ process.load("Configuration.StandardSequences.MagneticField_cff")
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 
 process.source = cms.Source("PoolSource",
-        fileNames = cms.untracked.vstring(#'/store/mc/2007/12/19/ReRecoIdeal-Zee-1198082306/0002/00B862E1-8AAE-DC11-B2BE-001617C3B6AA.root',
-
-              #  '/store/relval/CMSSW_2_1_9/RelValSingleElectronPt10/GEN-SIM-DIGI-RAW-HLTDEBUG-RECO/IDEAL_V9_v2/0000/1EB913B8-B185-DD11-83FE-000423D992DC.root'                 )
-'/store/mc/Summer08/Zee/GEN-SIM-RECO/IDEAL_V9_v1/0004/F63F0574-9888-DD11-B84A-001F29084160.root')
-   # '/store/relval/CMSSW_2_1_9/RelValZEE/GEN-SIM-DIGI-RAW-HLTDEBUG-RECO/STARTUP_V7_v2/0000/0A28F869-F285-DD11-AF3C-001617DBD5B2.root',
-   # '/store/relval/CMSSW_2_1_9/RelValZEE/GEN-SIM-DIGI-RAW-HLTDEBUG-RECO/STARTUP_V7_v2/0000/162C4B5E-F585-DD11-872A-001617C3B64C.root',
-   # '/store/relval/CMSSW_2_1_9/RelValZEE/GEN-SIM-DIGI-RAW-HLTDEBUG-RECO/STARTUP_V7_v2/0000/205E6CE3-F485-DD11-9D53-001617C3B76A.root',
-   # '/store/relval/CMSSW_2_1_9/RelValZEE/GEN-SIM-DIGI-RAW-HLTDEBUG-RECO/STARTUP_V7_v2/0000/562BAFA1-F585-DD11-B931-001617DBD224.root',
-   # '/store/relval/CMSSW_2_1_9/RelValZEE/GEN-SIM-DIGI-RAW-HLTDEBUG-RECO/STARTUP_V7_v2/0000/565AFE10-EF85-DD11-8353-000423D6B42C.root',
-   # '/store/relval/CMSSW_2_1_9/RelValZEE/GEN-SIM-DIGI-RAW-HLTDEBUG-RECO/STARTUP_V7_v2/0000/5C66302A-F185-DD11-81D3-000423D98834.root',
-   # '/store/relval/CMSSW_2_1_9/RelValZEE/GEN-SIM-DIGI-RAW-HLTDEBUG-RECO/STARTUP_V7_v2/0000/66F60641-F685-DD11-A493-000423D987FC.root',
-   # '/store/relval/CMSSW_2_1_9/RelValZEE/GEN-SIM-DIGI-RAW-HLTDEBUG-RECO/STARTUP_V7_v2/0000/6E6A6E2D-F485-DD11-B707-001617DBD472.root')
-#'/store/mc/CSA08/Zee/GEN-SIM-RECO/CSA08_S156_v1/0002/165E4BA2-AC2B-DD11-8163-001A644EB7CE.root')
-   # 'file:Ini.root')  
+        fileNames = cms.untracked.vstring(
+    'file:Zeedata.root')  
    )
+
 
 #output module for event data
 process.o1 = cms.OutputModule("PoolOutputModule",
@@ -56,11 +44,13 @@ process.o1 = cms.OutputModule("PoolOutputModule",
 process.ZeeAnalysis = cms.EDAnalyzer('MmZeeAnalyser',
 
    #Collections
-  # electronCollection = cms.untracked.InputTag("selectedLayer1Electrons"),
+
+   electronCollection = cms.untracked.InputTag("selectedLayer1Electrons"),
    ZCandidateCollection = cms.untracked.InputTag("zToEE"),
-  # ElectronMCTruthMap = cms.untracked.InputTag("ElectronMCTruth"),
-  # ZeeMCTruthCollection = cms.untracked.InputTag(""),
-                                  
+  # electronGSFCollection = cms.untracked.InputTag("pixelMatchGsfElectrons"),
+   genParticleCollection = cms.untracked.InputTag("genParticles"),
+   trackCollection = cms.untracked.InputTag("pixelMatchGsfFit"),
+
    matchingObjectCollection = cms.untracked.InputTag('mergedSuperClusters'),
 
    #Output File Name
@@ -121,22 +111,11 @@ process.compositeFilter = cms.EDFilter("CandViewCountFilter",
     minNumber = cms.uint32(1)
 )
 
-# Zpt Filter
-#process.compositeFilter = cms.EDFilter("CandViewCountFilter",
-#    src = cms.InputTag("zToEE"),
-#    minNumber = cms.uint32(1)
-#)
-
-
-#PAT Matcher
-## process.matchElectrons = cms.EDProducer("PatMCMatcher",
-##     src = cms.InputTag("selectedLayer1Electrons"),
-##     matched = cms.InputTag("genParticles"),
-##     maxDeltaR = cms.double( 0.15 ),
-##     macDPTRel = cms.double( 0.5 ),                                    
-##     mcPdgId = cms.vint32(11),
-##     mcStatus = cms.vint32(1)
-## )
+process.electronPtFilter = cms.EDFilter("PtMinGsfElectronCountFilter",
+    src = cms.InputTag("pixelMatchGsfElectrons"),
+    minNumber = cms.uint32(0),
+    ptMin = cms.double(10.0)                                    
+)
 
 # PAT Layer 1
 process.load("PhysicsTools.PatAlgos.patLayer0_cff") # need to load this
@@ -151,12 +130,12 @@ process.mergedSuperClusters = cms.EDFilter("EgammaSuperClusterMerger",
 
 #process.outpath = cms.EndPath(process.o1)
 
-process.p = cms.Path(
+process.p = cms.Path(process.electronPtFilter*
     process.patLayer0*
     process.patLayer1* 
     process.zToEE*
-    process.compositeFilter*
     process.mergedSuperClusters*
     process.ZeeAnalysis
     )
-## ## #process.mergedSuperClusters*
+
+

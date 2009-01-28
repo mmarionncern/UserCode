@@ -26,13 +26,13 @@
 #include "DataFormats/JetReco/interface/CaloJetCollection.h"
 #include "DataFormats/EcalDetId/interface/EcalSubdetector.h"
 #include "DataFormats/FWLite/interface/Event.h"
+#include "DataFormats/PatCandidates/interface/Electron.h"
+#include "DataFormats/HepMCCandidate/interface/GenParticle.h"
 
 #include "DQMServices/Core/interface/MonitorElement.h"
 #include "DQMServices/Core/interface/DQMStore.h"
 
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
-
-
 
 #include <utility>
 
@@ -46,8 +46,8 @@ using namespace cms;
 //using reco::GsfElectronCollection;
 
  //Z mass (GeV)
-static const double mZ0= 91.19;
-static const double myPi=acos(-1);
+//static const double mZ0= 91.19;
+//static const double myPi=acos(-1);
 
 
 class MmZeeAnalyser : public edm::EDAnalyzer
@@ -65,17 +65,20 @@ class MmZeeAnalyser : public edm::EDAnalyzer
 
  private: //  -----------  member data --------------
  
+ 
   InputTag electronCollectionTag_;
   InputTag ZCandCollectionTag_;
-  /*  InputTag ZRefCandCollectionTag_;
-  InputTag ElectronMCTruthTag_;
-  InputTag ZeeMCTruthTag_;*/
+  InputTag electronGSFCollectionTag_;
+  InputTag genParticlesTag_;
+  InputTag trackCollectionTag_;
  
 
   //Number of electron in the event
   int NumberElectron_;
 
   int EventNumber_;
+  int GoodCandidate_;
+  int NoZCandidate_;
 
   //Zee Candidates
   // int Candidate[5];
@@ -84,13 +87,18 @@ class MmZeeAnalyser : public edm::EDAnalyzer
   MonitorElement* MCTruth_Mass;
   MonitorElement* Mass_Z_HCL;
   MonitorElement* Mass_Z_LCL;
-  
+
+  MonitorElement* Zmass_bySC;
+  MonitorElement* Mass_no_MCT;
+  MonitorElement* Mass_no_MCT2;
+
   MonitorElement* Pt_Z_HCL;
   MonitorElement* Eta_Z_HCL;
   MonitorElement* Phi_Z_HCL;
   
   MonitorElement* LevelConf_Z;
   MonitorElement* MCFalse_LevelConf_Z;
+  MonitorElement* MCFalse_CL_ColS_Z;
 
   MonitorElement* PtvsdPhi_Z;
 
@@ -106,9 +114,19 @@ class MmZeeAnalyser : public edm::EDAnalyzer
   MonitorElement* deltaPtMC_dau_1;
  
   MonitorElement* dPhi_dau;
+  MonitorElement* EOP_electron;
 
   MonitorElement* deltaMassMC_Z;
 
+  MonitorElement* Eta_MCT;
+  MonitorElement* Pt_MCT;
+  MonitorElement* Eta_vs_E_MCT;
+  MonitorElement* Nelectron;
+  MonitorElement* No_Zreco_code;
+  MonitorElement* MCFalse_Z_code;
+
+  MonitorElement* SuperCluster_phiWidth;
+  MonitorElement* SuperCluster_etaWidth;
  
  private: //  -----------  functions ---------------
   virtual void beginJob(const edm::EventSetup&) ;
@@ -117,8 +135,14 @@ class MmZeeAnalyser : public edm::EDAnalyzer
 
   // General functions
 
-  bool MCTruth(const reco::CompositeCandidate& Zee,
-	       double deltaPt[2], double& deltaZMass);
+  bool MCTruth(const reco::GenParticleCollection& Genparticles,
+	       const reco::CompositeCandidate& Zee,
+	       double deltaPt[2], double& deltaZMass, int& code);
+
+  void ElectronTruth(const edm::View<pat::Electron>& ElectronColl,
+		     const reco::GsfTrackCollection& TrackColl,
+		     const reco::GenParticleCollection& Genparticles,
+		     int& code);
 
   // Zee analyse functions
   vector<reco::CompositeCandidate> ClassZeeCandidate(const  reco::CompositeCandidateCollection& ZeeCandidates);
