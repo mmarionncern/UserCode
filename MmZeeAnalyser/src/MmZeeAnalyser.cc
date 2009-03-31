@@ -16,7 +16,7 @@
 //
 // Original Author:  Matthieu Marionneau
 //         Created:  Mon Nov 10 14:59:45 CET 2008
-// $Id: MmZeeAnalyser.cc,v 1.6 2009/01/23 16:08:58 mmarionn Exp $
+// $Id: MmZeeAnalyser.cc,v 1.7 2009/01/28 13:12:38 mmarionn Exp $
 //
 //
 #include "MMarionneau/MmZeeAnalyser/interface/MmZeeAnalyser.h"
@@ -49,11 +49,15 @@
 #include "DataFormats/Candidate/interface/CompositeCandidate.h"
 #include "DataFormats/EgammaReco/interface/BasicClusterFwd.h"
 #include "DataFormats/EgammaReco/interface/SuperClusterFwd.h"
+#include "DataFormats/EgammaReco/interface/BasicCluster.h"
+#include "DataFormats/EgammaReco/interface/SuperCluster.h"
+#include "DataFormats/CaloRecHit/interface/CaloID.h"
 #include "DataFormats/JetReco/interface/CaloJetCollection.h"
 #include "DataFormats/EcalDetId/interface/EcalSubdetector.h"
 #include "DataFormats/FWLite/interface/Event.h"
 
 #include "PhysicsTools/CandUtils/interface/CandMatcher.h"
+#include "RecoEgamma/EgammaTools/interface/HoECalculator.h"
 
 #include "DQMServices/Core/interface/DQMStore.h"
 #include "DQMServices/Core/interface/MonitorElement.h"
@@ -71,13 +75,15 @@ using namespace cms;
 
 MmZeeAnalyser::MmZeeAnalyser(const edm::ParameterSet& iConfig):
 
- 
   electronCollectionTag_(iConfig.getUntrackedParameter<edm::InputTag>("electronCollection")),
-  // electronGSFCollectionTag_(iConfig.getUntrackedParameter<edm::InputTag>("electronGSFCollection")),
   ZCandCollectionTag_(iConfig.getUntrackedParameter<edm::InputTag>("ZCandidateCollection")),
   genParticlesTag_(iConfig.getUntrackedParameter<edm::InputTag>("genParticleCollection")),
   trackCollectionTag_(iConfig.getUntrackedParameter<edm::InputTag>("trackCollection"))
 {
+
+  //Analyse type Definition
+  analyse_type_ = iConfig.getUntrackedParameter<string>("analyseType");
+
   // DQM ROOT output
   outputFile_ = iConfig.getUntrackedParameter<string>("outputFile", ""); 
  if(outputFile_.size() != 0){
@@ -208,12 +214,12 @@ MmZeeAnalyser::MmZeeAnalyser(const edm::ParameterSet& iConfig):
   deltaMassMC_Z = book1D("deltaMassMC_Z",
 			 "#DeltaMass mc/pat of the Z candidate;"
 			 "#DeltaM;NEvts",
-			 80,0.,40.);
+			 160,-40.,40.);
   
   EOP_electron = book1D("EOP_electron",
 			"Energy on momentum for electrons;"
 			"EOP (GeV);Nevts",
-			100,0.5,1.5);
+			100,0.5,4.5);
   
 
   Eta_MCT = book2D( "Eta_MCT",
@@ -286,7 +292,7 @@ MmZeeAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   // using namespace edm;
   using namespace reco;
   using namespace pat;
-   
+
   //Collection reading    
    edm::Handle<edm::View<pat::Electron> > ElectronsHandle;
    iEvent.getByLabel(electronCollectionTag_, ElectronsHandle);
@@ -304,77 +310,72 @@ MmZeeAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    iEvent.getByLabel(genParticlesTag_, GenParticlesH);
    reco::GenParticleCollection GenParticles = *GenParticlesH;
    
-  
+
+   //liste classifiee des candidates  
    vector<reco::CompositeCandidate> ClassifiedZColl;
-   ClassifiedZColl = ClassZeeCandidate(ZeeCandidates);
+   //liste des nuiveaux de confiance de ces candidats
+   vector< int > ClassifiedZCL;
+
+   ClassifiedZColl = ClassZeeCandidate(ZeeCandidates,Tracks);
+
+   if(analyse_type_ =="TDR")
+     for(int unsigned iZee=0; iZee<ClassifiedZColl.size();iZee++)
+       ClassifiedZCL.push_back( ZeeConfLvlFromTDRElec(ClassifiedZColl[iZee]) );
+   else if(analyse_type_ =="EWK")
+     for(int unsigned iZee=0; iZee<ClassifiedZColl.size();iZee++)
+       ClassifiedZCL.push_back( ZeeConfLvlFromEWKElec(ClassifiedZColl[iZee],Tracks) );
+
+     //Matching MCTruth
    if(ClassifiedZColl.size()==0)
      {
-
        int code=-1;
-
+       
        ElectronTruth(Electrons,Tracks,GenParticles,code);
-
+       
        fill(No_Zreco_code,code);
        NoZCandidate_++;
-   }
+     }
    else{
-     /* for(int unsigned iZee=0;iZee<ClassifiedZColl.size();iZee++)
-	{*/
-     int iZee=0;
+     double deltaPt[2] = {0,0};
+     double deltaZMass = 0;
+     
+     int code=-10;
+     
+     bool mctruth =  MCTruth(GenParticles,
+			     ClassifiedZColl[0],
+			     deltaPt, deltaZMass,code);
+     if(mctruth)
+       {
+	 GoodCandidate_++;
+	 fill(deltaMassMC_Z,deltaZMass);
+	 fill(deltaPtMC_dau_0,deltaPt[0]);
+	 fill(deltaPtMC_dau_1,deltaPt[1]);
 	 
-	 double deltaPt[2] = {0,0};
-	 double deltaZMass = 0;
+	 fill(LevelConf_Z, ClassifiedZCL[0]);
 	 
-	 int code=-10;
-
-
-
-	 bool mctruth =  MCTruth(GenParticles,
-				 ClassifiedZColl[iZee],
-				 deltaPt, deltaZMass,code);
-	 if(mctruth)
-	   {
-	     GoodCandidate_++;
-/* if(iZee>0) { cout<<" niveau 2";
-	   cout<<"  Classification of Z "
-	   <<ZeeConfLvlFromElec(ClassifiedZColl[iZee])<<endl;}*/
-	     fill(deltaMassMC_Z,deltaZMass);
-	     fill(deltaPtMC_dau_0,deltaPt[0]);
-	     fill(deltaPtMC_dau_1,deltaPt[1]);
-
-	     fill(LevelConf_Z, ZeeConfLvlFromElec(ClassifiedZColl[0]));
-	   }
-	 else 
-	   {
-	     if(iZee==0)
-	       fill(MCFalse_LevelConf_Z, ZeeConfLvlFromElec(ClassifiedZColl[iZee]),Electrons.size());
-	     fill(MCFalse_CL_ColS_Z,
-		  ZeeConfLvlFromElec(ClassifiedZColl[iZee]),
-		  iZee+1);
-	     fill(MCFalse_Z_code,code);
-	     /*  cout<<"Warning, Zee is not validated by MCTruth : "
-		   <<" #Evt = "<<EventNumber_<<" ; Numero of Z  "<<iZee+1
-		   <<" ; Collsize "
-		   <<ClassifiedZColl.size()<<endl;*/
-	       /* cout<<"Classification of Z "
-		   <<ZeeConfLvlFromElec(ClassifiedZColl[iZee])
-		   <<" mass "<<ClassifiedZColl[iZee].mass()<<endl;
-		 <<ClassifiedZColl.size()<<endl;*/
-	   }
-	 //  }
-
-	 if(ZeeConfLvlFromElec(ClassifiedZColl[0])>1)
-	   {
-	   
-	     ElectronFromZAnalysis(ClassifiedZColl[0]);
-	    
-	     fill(Mass_Z_HCL, ClassifiedZColl[0].mass());
-	     fill(Pt_Z_HCL, ClassifiedZColl[0].pt()); 
-	     fill(Eta_Z_HCL, ClassifiedZColl[0].eta()); 
-	     fill(Phi_Z_HCL, ClassifiedZColl[0].phi()); 
-	   }
-	 else
-	   fill(Mass_Z_LCL,ClassifiedZColl[0].mass());
+	 //cout<< ClassifiedZCL[0]<<endl;
+       }
+     else 
+       {
+	 // if(iZee==0)
+	 fill(MCFalse_LevelConf_Z, ClassifiedZCL[0] ,Electrons.size());
+	 fill(MCFalse_CL_ColS_Z,
+	      ClassifiedZCL[0],
+	      1);
+	 fill(MCFalse_Z_code,code);
+       }
+     
+     if( ClassifiedZCL[0] >1)
+       {
+	 ElectronFromZAnalysis(ClassifiedZColl[0]);
+	 
+	 fill(Mass_Z_HCL, ClassifiedZColl[0].mass());
+	 fill(Pt_Z_HCL, ClassifiedZColl[0].pt()); 
+	 fill(Eta_Z_HCL, ClassifiedZColl[0].eta()); 
+	 fill(Phi_Z_HCL, ClassifiedZColl[0].phi()); 
+       }
+     else
+       fill(Mass_Z_LCL,ClassifiedZColl[0].mass());
    }
 }
 
@@ -405,80 +406,130 @@ MmZeeAnalyser::endJob() {
 
 //--------------------- classing "Z to ee" candidate in the event
  vector<reco::CompositeCandidate>
-MmZeeAnalyser::ClassZeeCandidate(const  reco::CompositeCandidateCollection& ZeeCandidates)
+MmZeeAnalyser::ClassZeeCandidate(const  reco::CompositeCandidateCollection& ZeeCandidates,
+				 const reco::GsfTrackCollection Tracks)
 {
   vector<reco::CompositeCandidate> ClassifiedZColl ;
-
-  if(ZeeCandidates.size()==0)
-    {
-      //cout<<" Warning, no reconstructed Z in this event"<<endl;
-      return ClassifiedZColl;
-    }
-  else if(ZeeCandidates.size()==1)
-    {
-      if(ZeeConfLvlFromElec(ZeeCandidates[0]) < 1 )
-	{
-	  cout<<"Warning, Confidence level on electrons is really bad"<<endl;
-	  cout<<"but alone candidate"<<endl;
-	  ClassifiedZColl.push_back(ZeeCandidates[0]);
-	}
-      else
-	{
-	  ClassifiedZColl.push_back(ZeeCandidates[0]);
-	}
-    }
-  else
-    {
-      int iZee=0; int goodZCand=0;
-      for(reco::CompositeCandidateCollection::const_iterator itZee = ZeeCandidates.begin(); itZee != ZeeCandidates.end(); itZee++, iZee++)
-	{
-	  const reco::CompositeCandidate& Zee = *itZee;
-	
-	  if(ZeeConfLvlFromElec(Zee) < 1 ){
-	    cout<<"Warning, Confidence level on electrons is really bad"<<endl;
-	    cout<<" candidate not classified "<<endl;
-	    continue;
-	  }
-	  else
-	    {
-	      ClassifiedZColl.push_back(Zee);
-	      goodZCand++;
-	    }
-	}
-
-      for(int i=0;i<goodZCand;i++){
-	for(int j=0;j<goodZCand;j++)
+  if(analyse_type_ == "TDR"){
+    if(ZeeCandidates.size()==0) //pas de candidat Z
+      {
+	// Warning, no reconstructed Z in this event
+	return ClassifiedZColl;
+      }
+    else if(ZeeCandidates.size()==1) // un seul candidat Z
+      {
+	if(ZeeConfLvlFromTDRElec(ZeeCandidates[0]) < 1 )
 	  {
-	    if(i != j)
-	      if( ZeeConfLvlFromElec(ClassifiedZColl[i])
-		  > ZeeConfLvlFromElec(ClassifiedZColl[j]) )
-		{
-		  const reco::CompositeCandidate Zee_tmp = ClassifiedZColl[i];
+	    //Warning, Confidence level on electrons is really bad
+	    //but alone candidate
+	    ClassifiedZColl.push_back(ZeeCandidates[0]);
+	  }
+	else
+	  {
+	    ClassifiedZColl.push_back(ZeeCandidates[0]);
+	  }
+      }
+    else     //plusieurs candidats Z, algo de tri necessaire
+      {      // base sur le niveau de confiance des electrons, puis sur la masse
+	int iZee=0; int goodZCand=0;
+	for(reco::CompositeCandidateCollection::const_iterator itZee = ZeeCandidates.begin(); itZee != ZeeCandidates.end(); itZee++, iZee++)
+	  {
+	    const reco::CompositeCandidate& Zee = *itZee;
+	    
+	    if(ZeeConfLvlFromTDRElec(Zee) < 1 )
+	      {//Warning, Confidence level on electrons is really bad
+	      // candidate not classified
+		continue;}
+	    else
+	      {ClassifiedZColl.push_back(Zee);
+	      goodZCand++;}
+	  }
+	for(int i=0;i<goodZCand;i++){
+	  for(int j=0;j<goodZCand;j++)
+	    {
+	      if(i != j)
+		if( ZeeConfLvlFromTDRElec(ClassifiedZColl[i])
+		    > ZeeConfLvlFromTDRElec(ClassifiedZColl[j]) )
+		  {const reco::CompositeCandidate Zee_tmp = ClassifiedZColl[i];
 		  ClassifiedZColl[i] = ClassifiedZColl[j];
 		  ClassifiedZColl[j] = Zee_tmp;
-		}
-	      else if( ZeeConfLvlFromElec(ClassifiedZColl[i])
-		       == ZeeConfLvlFromElec(ClassifiedZColl[j]) )
-		{
-		  double dm1 = fabs(ClassifiedZColl[i].mass()-mZ0);
-		  double dm2 = fabs(ClassifiedZColl[j].mass()-mZ0);
-		  
-		  if(dm1 < dm2 )
-		    {
-		   const reco::CompositeCandidate Zee_tmp = ClassifiedZColl[i];
-		   ClassifiedZColl[i] = ClassifiedZColl[j];
-		   ClassifiedZColl[j] = Zee_tmp;
-		    }
-		}
+		  }
+		else if( ZeeConfLvlFromTDRElec(ClassifiedZColl[i])
+			 == ZeeConfLvlFromTDRElec(ClassifiedZColl[j]) )
+		  {
+		    double dm1 = fabs(ClassifiedZColl[i].mass()-mZ0);
+		    double dm2 = fabs(ClassifiedZColl[j].mass()-mZ0);
+		    
+		    if(dm1 < dm2 )
+		      {const reco::CompositeCandidate Zee_tmp=ClassifiedZColl[i];
+		      ClassifiedZColl[i] = ClassifiedZColl[j];
+			ClassifiedZColl[j] = Zee_tmp;
+		      }
+		  }
+	    }
+	}//fin algo de tri des Z
+      }
+  }
+  else if (analyse_type_ == "EWK")
+    {
+      if(ZeeCandidates.size()==0) //pas de candidat Z
+	{ //Warning, no reconstructed Z in this event
+	  return ClassifiedZColl;cout<<" youpiyoupa_1_2_1!  "<<endl;}
+      else if(ZeeCandidates.size()==1) // un seul candidat Z
+	{
+	  if(ZeeConfLvlFromEWKElec(ZeeCandidates[0],Tracks) < 1 )
+	    { //Warning, Confidence level on electrons is really bad
+	      //but alone candidate
+	      ClassifiedZColl.push_back(ZeeCandidates[0]);}
+	  else
+	    {ClassifiedZColl.push_back(ZeeCandidates[0]);}
+	}
+      else     //plusieurs candidats Z, algo de tri necessaire
+	{      // base sur le niveau de confiance des electrons, puis sur la masse
+	  int iZee=0; int goodZCand=0;
+	  for(reco::CompositeCandidateCollection::const_iterator itZee = ZeeCandidates.begin(); itZee != ZeeCandidates.end(); itZee++, iZee++)
+	    {
+	      const reco::CompositeCandidate& Zee = *itZee;
+	      if(ZeeConfLvlFromEWKElec(Zee,Tracks) < 1 )
+		{//Warning, Confidence level on electrons is really bad
+		  //candidate not classified
+		  continue;}
+	      else
+		{ ClassifiedZColl.push_back(Zee);
+		goodZCand++; }
+	    }
+	  for(int i=0;i<goodZCand;i++){
+	    for(int j=0;j<goodZCand;j++){
+	      if(i != j)
+		if( ZeeConfLvlFromEWKElec(ClassifiedZColl[i], Tracks)
+		    > ZeeConfLvlFromEWKElec(ClassifiedZColl[j], Tracks) )
+		  {
+		    const reco::CompositeCandidate Zee_tmp = ClassifiedZColl[i];
+		    ClassifiedZColl[i] = ClassifiedZColl[j];
+		    ClassifiedZColl[j] = Zee_tmp;
+		  }
+		else if( ZeeConfLvlFromEWKElec(ClassifiedZColl[i], Tracks)
+			 == ZeeConfLvlFromEWKElec(ClassifiedZColl[j], Tracks) )
+		  {
+		    double dm1 = fabs(ClassifiedZColl[i].mass()-mZ0);
+		    double dm2 = fabs(ClassifiedZColl[j].mass()-mZ0);
+		    
+		    if(dm1 < dm2 )
+		      {const reco::CompositeCandidate Zee_tmp=ClassifiedZColl[i];
+		      ClassifiedZColl[i] = ClassifiedZColl[j];
+		      ClassifiedZColl[j] = Zee_tmp;
+		      }
+		  }
+	    }
 	  }
-      }//fin algo de tri des Z
+	}//fin algo de tri des Z
     }
-  return ClassifiedZColl;
+   return ClassifiedZColl;
 }
 
- 
+//Electron Classification using TDR criteria
 int 
-MmZeeAnalyser::ZeeConfLvlFromElec(const reco::CompositeCandidate& Zee){
+MmZeeAnalyser::ZeeConfLvlFromTDRElec(const reco::CompositeCandidate& Zee){
 
   float dau_Class[2] = {-1,-1};
  
@@ -522,6 +573,113 @@ MmZeeAnalyser::ZeeConfLvlFromElec(const reco::CompositeCandidate& Zee){
      return -1;
    }
  
+}
+
+//Electron Classification using EWK note criteria       *********************** doesn't work yet ************************************
+int MmZeeAnalyser::ZeeConfLvlFromEWKElec(const reco::CompositeCandidate& Zee,
+					 const reco::GsfTrackCollection& TrackColl){
+  float EOP1=0,EOP2=0;
+  float IsoTrack1=0.,IsoTrack2=0.;
+  int NbTrack1=0,NbTrack2=0;
+  bool EOP[2] = {false,false};
+  bool HOE[2] = {false,false};
+  bool IsoTrack[2] = {false,false};
+  bool NTrack[2] = {false,false};
+  
+  bool Electron[2]={false,false};
+  
+  if(Zee.numberOfDaughters()!=2)
+    {
+      cout<<" Bad reconstruction : number of daughter not egal to two "<<endl;
+      return -1;
+    }
+  const pat::Electron *originalElectron1 = dynamic_cast<const pat::Electron *>(Zee.daughter(0)->masterClone().get());
+  const pat::Electron *originalElectron2 = dynamic_cast<const pat::Electron *>(Zee.daughter(1)->masterClone().get());
+  
+  reco::SuperClusterRef SC1 = originalElectron1->superCluster();
+  reco::SuperClusterRef SC2 = originalElectron2->superCluster();
+  reco::GsfTrackRef Trk1 = originalElectron1->gsfTrack();
+  reco::GsfTrackRef Trk2 = originalElectron2->gsfTrack();
+  
+  EOP1 = SC1->rawEnergy()/Trk1->outerP();
+  EOP2 = SC2->rawEnergy()/Trk2->outerP();
+ 
+  if(EOP1<3.0 && EOP1>0.75) {EOP[0]=true;} //Condition sur EOP
+  if(EOP2<3.0 && EOP2>0.75) {EOP[1]=true;}
+   
+  for(reco::GsfTrackCollection::const_iterator itTrack = TrackColl.begin();
+      itTrack !=TrackColl.end(); itTrack++)
+    {
+      if(itTrack->pt()>2 && itTrack->found()>5)
+	{ 
+	  float Dr1 = mmDeltaR(itTrack->eta(),itTrack->phi(),
+			 originalElectron1->eta(),originalElectron1->phi(),
+			 itTrack->pt(),originalElectron1->pt(), false);
+	  float Dr2 = mmDeltaR(itTrack->eta(),itTrack->phi(),
+			  originalElectron2->eta(),originalElectron2->phi(),
+			  itTrack->pt(),originalElectron2->pt(), false);
+	  if(Dr1<0.15) {NbTrack1++;}
+	  if(Dr2<0.15) {NbTrack2++;}
+	  
+	  if(Dr1<0.2)
+	    {IsoTrack1 += itTrack->pt() -
+	       ConversionEpt(SC1->rawEnergy(),SC1->eta());}
+	  if(Dr2<0.2)
+	    {IsoTrack2 += itTrack->pt() -
+	       ConversionEpt(SC2->rawEnergy(),SC1->eta());}
+	}
+    }
+ 
+  IsoTrack1 /= ConversionEpt(SC1->rawEnergy(),SC1->eta());
+  IsoTrack2 /= ConversionEpt(SC2->rawEnergy(),SC1->eta());
+  
+  if(NbTrack1<3) {NTrack[0]=true;} //Condition sur le nombre de traces
+  if(NbTrack2<3) {NTrack[1]=true;}
+  if(IsoTrack1<0.34) {IsoTrack[0]=true;} //Condition sur l'isolation des
+  if(IsoTrack1<0.34) {IsoTrack[1]=true;} //electrons
+   
+  /* double EEnergy=0,HEnergy=0;
+  cout<<" SC1 "<<SC1->caloID().detectors()<<endl;
+  for(reco::basicCluster_iterator itCluster=SC1->clustersBegin();
+      itCluster!=SC1->clustersEnd(); itCluster++)
+    { cout<<" IDCLuster1 "<<(*itCluster)->caloID().detectors()
+	  <<" energy "<<(*itCluster)->energy()<<endl;
+      if((*itCluster)->caloID().detector(reco::CaloID::DET_ECAL_BARREL) || 
+	 (*itCluster)->caloID().detector(reco::CaloID::DET_ECAL_ENDCAP)  )
+	{ EEnergy += (*itCluster)->energy(); cout<<" eenergy "<<EEnergy<<endl;}
+      if((*itCluster)->caloID().detector(reco::CaloID::DET_HCAL_BARREL) || 
+	 (*itCluster)->caloID().detector(reco::CaloID::DET_HCAL_ENDCAP)  )
+	{ HEnergy += (*itCluster)->energy();cout<<" henergy "<<HEnergy<<endl;}
+    }
+  if( (HEnergy/EEnergy)<0.08) {HOE[0]=true;} //Condition sur HOE
+  cout<<" HOE1 "<<HEnergy/EEnergy<<" ";
+  EEnergy=0;HEnergy=0;
+  for(reco::basicCluster_iterator itCluster=SC2->clustersBegin();
+      itCluster!=SC2->clustersEnd(); itCluster++)
+    {  cout<<" IDCLuster2 "<<(*itCluster)->caloID().detectors()
+	   <<" energy "<<(*itCluster)->energy()<<endl;
+      if((*itCluster)->caloID().detector(reco::CaloID::DET_ECAL_BARREL) || 
+	 (*itCluster)->caloID().detector(reco::CaloID::DET_ECAL_ENDCAP)  )
+	{ EEnergy += (*itCluster)->energy();cout<<" eenergy2 "<<EEnergy<<endl;}
+      if((*itCluster)->caloID().detector(reco::CaloID::DET_HCAL_BARREL) || 
+	 (*itCluster)->caloID().detector(reco::CaloID::DET_HCAL_ENDCAP)  )
+	{ HEnergy += (*itCluster)->energy();cout<<" henergy2 "<<HEnergy<<endl;}
+    }
+  cout<<" HOE2 "<<HEnergy/EEnergy<<endl;
+  if( (HEnergy/EEnergy)<0.08) {HOE[1]=true;} //Condition sur HOE*/
+
+ if( originalElectron1->hadronicOverEm()<0.08) {HOE[0]=true;}
+ if( originalElectron2->hadronicOverEm()<0.08) {HOE[1]=true;}
+
+ for(int i=0;i<2;i++)  //Validation des electrons
+    {if(HOE[i] && EOP[i] && NTrack[i] && IsoTrack[i]) Electron[i]=true;}
+  if(Electron[0] && Electron[1]) // electrons  valides -> 4
+    return 4;
+  else if( (!Electron[0] && Electron[1]) || //Un electron valide
+	   (Electron[0] && !Electron[1])  )  //un autre non reconnu -> 1
+    return 1;
+  else return 0; //Aucun electron reconnu
+    
 }
 
 //---------------------- Histos Method --------------------
@@ -580,7 +738,7 @@ bool MmZeeAnalyser::registerHist(const std::string& name,
   return allHists_ || histList_.find(name)!=histList_.end();
 }
 
-//MC validation
+// Zee MC validation
 
 bool MmZeeAnalyser::MCTruth(const reco::GenParticleCollection& MCElectronColl,
 			    const reco::CompositeCandidate& Zee,
@@ -613,8 +771,6 @@ bool MmZeeAnalyser::MCTruth(const reco::GenParticleCollection& MCElectronColl,
 	  {
 	    const Candidate * mother1 = match1->mother();
 	    const Candidate * mother2 = match2->mother();
-	    //  if(mother1->pdgId()==23 || mother2->pdgId()==23) 
-	      // cout<<"Z ICI!!!!"<<endl;
 	    if( (mother1->numberOfMothers()!=0)&&
 		(mother2->numberOfMothers()!=0) )
 	      {
@@ -624,7 +780,7 @@ bool MmZeeAnalyser::MCTruth(const reco::GenParticleCollection& MCElectronColl,
 		  {
 		    deltaPt[0] = abs(originalElectron1->pt() - match1->pt());
 		    deltaPt[1] = abs(originalElectron2->pt() - match2->pt());
-		    deltaZMass = abs(Zee.mass()-mother_lvl2_1->mass());
+		    deltaZMass = Zee.mass()-mother_lvl2_1->mass();
 		    mctruth=true; code=0;
 		    fill(MCTruth_Mass, mother_lvl2_1->mass());
 		  }
@@ -642,45 +798,42 @@ bool MmZeeAnalyser::MCTruth(const reco::GenParticleCollection& MCElectronColl,
     
 
       bool cand1=false,cand2=false;
+      double ZMCmass=-1;
 
       for(reco::GenParticleCollection::const_iterator itMC = MCElectronColl.begin(); itMC != MCElectronColl.end(); itMC++)
 	{
 	  const Candidate * mother = itMC->mother();
+	 	    
 	  if(abs(itMC->pdgId())==11 && mother->pdgId()==23)
-	    {
-	      // cout<<" can1 "<<match1.isNull()<<endl;
-	      if(match1.isNull()){
+	    {if(match1.isNull()){
 		double Dr=mmDeltaR(originalElectron1->eta(),
 				   originalElectron1->phi(),
 				   itMC->eta(),itMC->phi(),
 				   originalElectron1->pt(),itMC->pt(),true);
-		/*cout<<" Dr1 "<<Dr<<" id1 "<<originalElectron1->pdgId()
-		    <<" "<<itMC->pdgId()<<" "
-		    <<originalElectron1->pt()<<"  "<<itMC->pt()<<endl;*/
 		if(Dr<0.4 && originalElectron1->pdgId()==itMC->pdgId() )
 		  { cand1 = true;}
-		}
-		else cand1=true;
-	      // cout<<" can1 après "<<cand1<<endl;
-	      // cout<<" can2 "<<match2.isNull()<<endl;
-	      if(match2.isNull()){
-		double Dr=mmDeltaR(originalElectron2->eta(),
-				   originalElectron2->phi(),
-				   itMC->eta(),itMC->phi(),
-				   originalElectron1->pt(),itMC->pt(),true);
-		/*	cout<<" Dr2 "<<Dr<<" id2 "<<originalElectron2->pdgId()
-		    <<" "<<itMC->pdgId()<<"  "
-		    <<originalElectron1->pt()<<"  "<<itMC->pt()<<endl;*/
-		if(Dr<0.4 && originalElectron2->pdgId()==itMC->pdgId())
-		  {cand2 = true;}
+	       }
+	    else cand1=true;
+	    
+	    if(match2.isNull()){
+	      double Dr=mmDeltaR(originalElectron2->eta(),
+				 originalElectron2->phi(),
+				 itMC->eta(),itMC->phi(),
+				 originalElectron1->pt(),itMC->pt(),true);
+	      if(Dr<0.4 && originalElectron2->pdgId()==itMC->pdgId())
+		{cand2 = true;}
 	      }
 	      else cand2 =true;
-	      //  cout<<" can2 après "<<cand2<<endl;
+
+	    ZMCmass=mother->mass();
 	    }
 	}
 
-      if(cand1 && cand2)  {mctruth=true;code=8;  fill(Mass_no_MCT,Zee.mass()); }
-        else   fill(Mass_no_MCT2,Zee.mass());
+      if(cand1 && cand2)  {
+	mctruth=true;code=8;  fill(Mass_no_MCT,Zee.mass());
+	deltaZMass = Zee.mass()-ZMCmass;
+      }
+      else   fill(Mass_no_MCT2,Zee.mass());
     }
     if(!mctruth)
       {
@@ -691,6 +844,8 @@ bool MmZeeAnalyser::MCTruth(const reco::GenParticleCollection& MCElectronColl,
     return mctruth;
 }
 
+
+//Electron MC validation
 void MmZeeAnalyser::ElectronTruth(const edm::View<pat::Electron>& ElectronColl,
 				  const reco::GsfTrackCollection& TrackColl,
 				  const reco::GenParticleCollection& MCElectronColl, int& code){
@@ -766,6 +921,8 @@ void MmZeeAnalyser::ElectronTruth(const edm::View<pat::Electron>& ElectronColl,
   return;
 }
 
+
+//Filling Electrons Histos
  void MmZeeAnalyser::ElectronFromZAnalysis(const reco::CompositeCandidate& Zee){
   using namespace reco;
 
@@ -791,17 +948,35 @@ void MmZeeAnalyser::ElectronTruth(const edm::View<pat::Electron>& ElectronColl,
   reco::SuperClusterRef SC1 = originalElectron1->superCluster();
   reco::SuperClusterRef SC2 = originalElectron2->superCluster();
 
+  reco::GsfTrackRef Trk1 = originalElectron1->gsfTrack();
+  reco::GsfTrackRef Trk2 = originalElectron2->gsfTrack();
+
   fill(SuperCluster_etaWidth,SC1->etaWidth());
   fill(SuperCluster_phiWidth,SC1->phiWidth());
 
   if(SC1.isNull()) cout<<" SC1 null ";
   if(SC2.isNull()) cout<<" SC2 null ";
+  if(Trk1.isNull()) cout<<" Trk1 null ";
+  if(Trk2.isNull()) cout<<" Trk2 null ";
  
-  EOP[0] = SC1->rawEnergy()/originalElectron1->p();
-  EOP[1] = SC2->rawEnergy()/originalElectron2->p();
+  EOP[0] = SC1->rawEnergy()/Trk1->outerP();
+  EOP[1] = SC2->rawEnergy()/Trk2->outerP();
+
+  double RecoEnergySC[2]={-1,-1};
+  RecoEnergySC[0]=(sin(ConversionEtaTheta(SC1->eta())) +
+		   cos(ConversionEtaTheta(SC1->eta()))/cos(SC1->phiWidth()) )*SC1->rawEnergy();
+  RecoEnergySC[1]=(sin(ConversionEtaTheta(SC2->eta())) +
+		 cos(ConversionEtaTheta(SC2->eta()))/cos(SC2->phiWidth()) )*SC2->rawEnergy();
   
+  float Cluster1[3] = {SC1->x(),SC1->y(),SC1->z()};
+  float Cluster2[3] = {SC2->x(),SC2->y(),SC2->z()};
+
+  double ZmassSC = -1;
+  ZmassSC = sqrt(2*RecoEnergySC[0]*RecoEnergySC[1]*
+		 (1-cos(Angle_2vecteurs(Cluster1,Cluster2,true))) );
+
   fill(EOP_electron,EOP[0]);fill(EOP_electron,EOP[1]);
-  fill(Zmass_bySC,SC1->rawEnergy()+SC2->rawEnergy());
+  fill(Zmass_bySC,ZmassSC);
   return;
 }
   

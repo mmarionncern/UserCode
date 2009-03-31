@@ -71,11 +71,13 @@ class MmZeeAnalyser : public edm::EDAnalyzer
   InputTag electronGSFCollectionTag_;
   InputTag genParticlesTag_;
   InputTag trackCollectionTag_;
- 
 
+  std::string analyse_type_;
+  
   //Number of electron in the event
   int NumberElectron_;
 
+  //Status Numbers
   int EventNumber_;
   int GoodCandidate_;
   int NoZCandidate_;
@@ -135,21 +137,25 @@ class MmZeeAnalyser : public edm::EDAnalyzer
 
   // General functions
 
+  // Zee MCTruth Validation
   bool MCTruth(const reco::GenParticleCollection& Genparticles,
 	       const reco::CompositeCandidate& Zee,
 	       double deltaPt[2], double& deltaZMass, int& code);
 
+  //Electron MCTruth Validation
   void ElectronTruth(const edm::View<pat::Electron>& ElectronColl,
 		     const reco::GsfTrackCollection& TrackColl,
 		     const reco::GenParticleCollection& Genparticles,
 		     int& code);
 
   // Zee analyse functions
-  vector<reco::CompositeCandidate> ClassZeeCandidate(const  reco::CompositeCandidateCollection& ZeeCandidates);
+  vector<reco::CompositeCandidate> ClassZeeCandidate(const  reco::CompositeCandidateCollection& ZeeCandidates,
+						     const reco::GsfTrackCollection Tracks);
 
-  //Zee Confidence level calculation with electron conditions
-  int ZeeConfLvlFromElec(const reco::CompositeCandidate& Zee);
-
+  //Zee "Confidence level" calculation with electron conditions
+  int ZeeConfLvlFromTDRElec(const reco::CompositeCandidate& Zee); //using TDR criteria
+  int ZeeConfLvlFromEWKElec(const reco::CompositeCandidate& Zee,
+			    const reco::GsfTrackCollection& TrackColl); //using EWK note criteria   *********************** doesn't work yet ******************
   //Electron analyze functions
   void ElectronFromZAnalysis(const reco::CompositeCandidate& Zee);
 

@@ -32,7 +32,7 @@ int diveucli(int Event_cut_flag, int i) //Division euclidienne
   return quotient;
 }
 
-float mmDeltaR(float eta1, float phi1, float eta2, float phi2, float pt1, float pt2, bool option) //Renvoie Dr , si option=true, renvoie Dr sur espace eta/phi/pt
+double mmDeltaR(double eta1, double phi1, double eta2, double phi2, double pt1, double pt2, bool option) //Renvoie Dr , si option=true, renvoie Dr sur espace eta/phi/pt
 {
   float dr,deta,dphi,dmass;
 
@@ -154,6 +154,26 @@ void Conversion_carte_REP(float carte[3], float& R, float& E, float& P)//Convers
   R = sqrt(carte[0]*carte[0] + carte[1]*carte[1] + carte[2]*carte[2]);
  
   return;
+}
+
+
+float Angle_2vecteurs(float Vect1[3], float Vect2[3],bool cartesien)//Renvoie l'angle formé par deux vecteurs, coordonnées de départ en REP ou Cartesien valide, mais juste à préciser
+{
+  if(!cartesien)
+    {
+      Conversion_REP_carte(Vect1,Vect1[0],Vect1[1],Vect1[2]);
+      Conversion_REP_carte(Vect2,Vect2[0],Vect2[1],Vect2[2]);
+
+    }
+  double Norme1=0,Norme2=0,PS=0;
+  float theta;
+  Norme1 = sqrt(Vect1[0]*Vect1[0] + Vect1[1]*Vect1[1] +Vect1[2]*Vect1[2] );
+  Norme2 = sqrt(Vect2[0]*Vect2[0] + Vect2[1]*Vect2[1] +Vect2[2]*Vect2[2] );
+  PS = Vect1[0]*Vect2[0] + Vect1[1]*Vect2[1] +Vect1[2]*Vect2[2];
+  
+  theta=acos(PS/(Norme1*Norme2));
+  
+  return theta;
 }
 
 
