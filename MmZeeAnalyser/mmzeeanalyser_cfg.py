@@ -1,10 +1,5 @@
 import FWCore.ParameterSet.Config as cms
 
-#from PhysicsTools.HepMCCandAlgos.genParticles_cfi import *
-#from PhysicsTools.HepMCCandAlgos.genParticleCandidates_cfi import *
-#from PhysicsTools.RecoAlgos.allElectrons_cfi import *
-
-
 process = cms.Process("MmZeeAnalysis")
 
 #Message Logger
@@ -32,7 +27,11 @@ process.source = cms.Source("PoolSource",
 
 #output module for event data
 process.o1 = cms.OutputModule("PoolOutputModule",
-      outputCommands = cms.untracked.vstring('keep *_zToEE_*_*','keep *_selectedLayer1Electrons_*_*','keep *_selectedLayer1Photons_*_*','keep *_zToEEMCTruth_*_*','keep *_ElectronsMCTruth_*_*','keep *'),
+      outputCommands = cms.untracked.vstring('keep *_zToEE_*_*',
+                                             'keep *_selectedLayer1Electrons_*_*',
+                                             'keep *_selectedLayer1Photons_*_*',
+                                             'keep *_zToMuMu_*_*',
+                                             'keep *_selectedLayer1Muons_*_*'),
     fileName = cms.untracked.string('Ini.root')
 )
 
@@ -40,12 +39,14 @@ process.o1 = cms.OutputModule("PoolOutputModule",
 #Electron Analyzer
 process.ZeeAnalysis = cms.EDAnalyzer('MmZeeAnalyser',
 
-   analyseType = cms.untracked.string("EWK"),
+   analyseType = cms.untracked.string("TDR"),
 
    #Collections
    electronCollection = cms.untracked.InputTag("selectedLayer1Electrons"),
-   ZCandidateCollection = cms.untracked.InputTag("zToEE"),
-  # electronGSFCollection = cms.untracked.InputTag("pixelMatchGsfElectrons"),
+   muonCollection = cms.untracked.InputTag("selectedLayer1Muons"),                                 
+   ZeeCandidateCollection = cms.untracked.InputTag("zToEE"),
+   ZmumuCandidateCollection = cms.untracked.InputTag("zToMuMu"),                                
+
    genParticleCollection = cms.untracked.InputTag("genParticles"),
    trackCollection = cms.untracked.InputTag("pixelMatchGsfFit"),
 
@@ -57,11 +58,16 @@ process.ZeeAnalysis = cms.EDAnalyzer('MmZeeAnalyser',
    histograms = cms.untracked.vstring('all'),
 )
 
-#process.outpath = cms.EndPath(process.o1)
+process.outpath = cms.EndPath(process.o1)
 
 process.load("MMarionneau.MmZeeAnalyser.mmPatProducer_cfi")
+#process.load("MMarionneau.MmZeeAnalyser.mmPatProducer_Zmumu_cfi")
+process.load("MMarionneau.LeptonFilter.LeptonFilter_cfi")
 
-
-process.p = cms.Path(process.mmPatProducerZee*process.ZeeAnalysis)
+process.p = cms.Path( process.LeptonFilter*
+                      process.mmPatProducerZee*
+                     (process.zToEE + process.zToMuMu)
+                     *process.mergedSuperClusters
+                     *process.ZeeAnalysis)
 
 

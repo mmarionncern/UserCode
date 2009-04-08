@@ -27,7 +27,10 @@
 #include "DataFormats/EcalDetId/interface/EcalSubdetector.h"
 #include "DataFormats/FWLite/interface/Event.h"
 #include "DataFormats/PatCandidates/interface/Electron.h"
+#include "DataFormats/PatCandidates/interface/Muon.h"
+#include "DataFormats/PatCandidates/interface/Lepton.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
+#include <DataFormats/PatCandidates/interface/Particle.h>
 
 #include "DQMServices/Core/interface/MonitorElement.h"
 #include "DQMServices/Core/interface/DQMStore.h"
@@ -35,6 +38,10 @@
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 
 #include <utility>
+
+#include "MMarionneau/MmZeeAnalyser/Utilitaires/Utilitaires_Geom.cc"
+
+
 
 class DQMStore;
 class MonitorElement;
@@ -67,8 +74,9 @@ class MmZeeAnalyser : public edm::EDAnalyzer
  
  
   InputTag electronCollectionTag_;
-  InputTag ZCandCollectionTag_;
-  InputTag electronGSFCollectionTag_;
+  InputTag muonCollectionTag_;
+  InputTag ZeeCandCollectionTag_;
+  InputTag ZmumuCandCollectionTag_;
   InputTag genParticlesTag_;
   InputTag trackCollectionTag_;
 
@@ -79,57 +87,64 @@ class MmZeeAnalyser : public edm::EDAnalyzer
 
   //Status Numbers
   int EventNumber_;
-  int GoodCandidate_;
-  int NoZCandidate_;
+  int GoodCandidate_[2];
+  int NoZCandidate_[2];
+
+
+  //Channels (Decay Mode)
+  string DecMod_[2];
+
+
 
   //Zee Candidates
   // int Candidate[5];
 
   //Histogrammes
-  MonitorElement* MCTruth_Mass;
-  MonitorElement* Mass_Z_HCL;
-  MonitorElement* Mass_Z_LCL;
-
-  MonitorElement* Zmass_bySC;
-  MonitorElement* Mass_no_MCT;
-  MonitorElement* Mass_no_MCT2;
-
-  MonitorElement* Pt_Z_HCL;
-  MonitorElement* Eta_Z_HCL;
-  MonitorElement* Phi_Z_HCL;
-  
-  MonitorElement* LevelConf_Z;
-  MonitorElement* MCFalse_LevelConf_Z;
-  MonitorElement* MCFalse_CL_ColS_Z;
-
-  MonitorElement* PtvsdPhi_Z;
-
-  MonitorElement* Pt_dau_0;
-  MonitorElement* Eta_dau_0;
-  MonitorElement* Phi_dau_0;
-  MonitorElement* Class_dau_0 ;
-  MonitorElement* deltaPtMC_dau_0;
-  MonitorElement* Pt_dau_1;
-  MonitorElement* Eta_dau_1;
-  MonitorElement* Phi_dau_1;
-  MonitorElement* Class_dau_1;
-  MonitorElement* deltaPtMC_dau_1;
- 
-  MonitorElement* dPhi_dau;
-  MonitorElement* EOP_electron;
-
-  MonitorElement* deltaMassMC_Z;
-
-  MonitorElement* Eta_MCT;
-  MonitorElement* Pt_MCT;
-  MonitorElement* Eta_vs_E_MCT;
-  MonitorElement* Nelectron;
-  MonitorElement* No_Zreco_code;
-  MonitorElement* MCFalse_Z_code;
-
-  MonitorElement* SuperCluster_phiWidth;
-  MonitorElement* SuperCluster_etaWidth;
- 
+   map< string, MonitorElement* > MCTruth_Mass;
+   map< string, MonitorElement* > Mass_Z_HCL;
+   map< string, MonitorElement* > Mass_Z_LCL;
+   
+   MonitorElement* Zmass_bySC;
+   map< string, MonitorElement* > Mass_no_MCT;
+   map< string, MonitorElement* > Mass_no_MCT2;
+   
+   map< string, MonitorElement* > Pt_Z_HCL;
+   map< string, MonitorElement* > Eta_Z_HCL;
+   map< string, MonitorElement* > Phi_Z_HCL;
+   
+   map< string, MonitorElement* > LevelConf_Z;
+   map< string, MonitorElement* > MCFalse_LevelConf_Z;
+   map< string, MonitorElement* > MCFalse_CL_ColS_Z;
+   
+   map< string, MonitorElement* > PtvsdPhi_Z;
+   
+   map< string, MonitorElement* > Pt_dau_0;
+   map< string, MonitorElement* > Eta_dau_0;
+   map< string, MonitorElement* > Phi_dau_0;
+   map< string, MonitorElement* > Class_dau_0 ;
+   map< string, MonitorElement* > deltaPtMC_dau_0;
+   map< string, MonitorElement* > Pt_dau_1;
+   map< string, MonitorElement* > Eta_dau_1;
+   map< string, MonitorElement* > Phi_dau_1;
+   map< string, MonitorElement* > Class_dau_1;
+   map< string, MonitorElement* > deltaPtMC_dau_1;
+   
+   map< string, MonitorElement* > dPhi_dau;
+   MonitorElement* EOP_electron;
+   
+   map< string, MonitorElement* > deltaMassMC_Z;
+   
+   map< string, MonitorElement* > Eta_MCT;
+   map< string, MonitorElement* > Pt_MCT;
+   map< string, MonitorElement* > Eta_vs_E_MCT;
+   map< string, MonitorElement* > Nlepton;
+   map< string, MonitorElement* > No_Zreco_code;
+   map< string, MonitorElement* > MCFalse_Z_code;
+   
+   MonitorElement*  SuperCluster_phiWidth;
+   MonitorElement*  SuperCluster_etaWidth;
+   
+   
  private: //  -----------  functions ---------------
   virtual void beginJob(const edm::EventSetup&) ;
   virtual void analyze(const edm::Event&, const edm::EventSetup&);
@@ -137,27 +152,38 @@ class MmZeeAnalyser : public edm::EDAnalyzer
 
   // General functions
 
-  // Zee MCTruth Validation
+  // Z MCTruth Validation
   bool MCTruth(const reco::GenParticleCollection& Genparticles,
 	       const reco::CompositeCandidate& Zee,
-	       double deltaPt[2], double& deltaZMass, int& code);
+	       double deltaPt[2], double& deltaZMass, int& code, string channel);
 
-  //Electron MCTruth Validation
-  void ElectronTruth(const edm::View<pat::Electron>& ElectronColl,
-		     const reco::GsfTrackCollection& TrackColl,
-		     const reco::GenParticleCollection& Genparticles,
-		     int& code);
+  //Lepton MCTruth Validation
+  void LeptonTruth(const edm::View<pat::Electron>& ElectronColl,
+		   const edm::View<pat::Muon>& MuonColl,
+		   const reco::GsfTrackCollection& TrackColl,
+		   const reco::GenParticleCollection& Genparticles,
+		   int& code, string channel);
 
-  // Zee analyse functions
-  vector<reco::CompositeCandidate> ClassZeeCandidate(const  reco::CompositeCandidateCollection& ZeeCandidates,
-						     const reco::GsfTrackCollection Tracks);
+  // Z analyse functions
+  vector<reco::CompositeCandidate> ClassZCandidate(const  reco::CompositeCandidateCollection& ZCandidates,
+						     const reco::GsfTrackCollection Tracks, string channel);
 
-  //Zee "Confidence level" calculation with electron conditions
-  int ZeeConfLvlFromTDRElec(const reco::CompositeCandidate& Zee); //using TDR criteria
-  int ZeeConfLvlFromEWKElec(const reco::CompositeCandidate& Zee,
-			    const reco::GsfTrackCollection& TrackColl); //using EWK note criteria   *********************** doesn't work yet ******************
-  //Electron analyze functions
-  void ElectronFromZAnalysis(const reco::CompositeCandidate& Zee);
+  //Z "Confidence level" calculation with conditions
+  int ZConfLvlFromTDR(const reco::CompositeCandidate& Z, string channel); //using TDR criteria
+ 
+
+  // Particular functions ----- (not general) 
+  
+  //Zmumu "Confidence level" calculation with conditions
+  int ZmumuConfLvlFromTDR(const reco::CompositeCandidate& Zmumu);
+
+  //Zee "Confidence level" calculation with conditions
+  int ZeeConfLvlFromTDR(const reco::CompositeCandidate& Zee);
+
+ //Electron Filling/analyse functions
+  void LeptonFromZAnalysis(const reco::CompositeCandidate& Zee, string channel);
+  //Muon isolation
+  int IsoMuon(const pat::Muon*& muon);
 
  // Wrapper to fill methods of DQM monitor elements.
    

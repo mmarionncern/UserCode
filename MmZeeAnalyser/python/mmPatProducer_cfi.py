@@ -16,12 +16,7 @@ GlobalTag.globaltag = cms.string('IDEAL_V5::All')
 
 
 # produce Z to e e candidates
-zToEE = cms.EDProducer("CandViewShallowCloneCombiner",
-    decay = cms.string('selectedLayer1Electrons@+ selectedLayer1Electrons@-'),
-    cut = cms.string('30.0 < mass < 20000.0'),
-    name = cms.string('zToEE'),
-    roles = cms.vstring('positron', 'electron')
-)
+
 
 # require at least one Z to EE candidate
 compositeFilter = cms.EDFilter("CandViewCountFilter",
@@ -39,6 +34,14 @@ electronPtFilter = cms.EDFilter("PtMinGsfElectronCountFilter",
 #load("PhysicsTools.PatAlgos.patLayer0_cff") # need to load this
 #load("PhysicsTools.PatAlgos.patLayer1_cff") # even if we run only layer 1
 
+muonPtFilter = cms.EDFilter("PtMinMuonCountFilter",
+    src = cms.InputTag("muons"),
+    minNumber = cms.uint32(0),
+    ptMin = cms.double(10.0)                                    
+)
+
+
+
 
 #Filter on SuperCluster
 mergedSuperClusters = cms.EDFilter("EgammaSuperClusterMerger",
@@ -47,9 +50,26 @@ mergedSuperClusters = cms.EDFilter("EgammaSuperClusterMerger",
 )
 
 
+zToMuMu = cms.EDProducer("CandViewShallowCloneCombiner",
+    decay = cms.string('selectedLayer1Muons@+ selectedLayer1Muons@-'),
+    cut = cms.string('30.0 < mass < 20000.0'),
+    name = cms.string('zToMuMu'),
+    roles = cms.vstring('Muon_plus', 'Muon_minus'),
+    filter = cms.bool(False)                    
+)
 
-mmPatProducerZee = cms.Sequence(electronPtFilter*
-                                patLayer0*
-                                patLayer1* 
-                                zToEE*
-                                mergedSuperClusters)
+zToEE = cms.EDProducer("CandViewShallowCloneCombiner",
+    decay = cms.string('selectedLayer1Electrons@+ selectedLayer1Electrons@-'),
+    cut = cms.string('30.0 < mass < 20000.0'),
+    name = cms.string('zToEE'),
+    roles = cms.vstring('positron', 'electron'),
+    filter = cms.bool(False)                    
+)
+
+
+mmPatProducerZee = cms.Sequence(#electronPtFilter*muonPtFilter*
+   # LeptonFilter*
+    patLayer0*
+    patLayer1) 
+#    (zToMuMu + zToEE) *
+#    mergedSuperClusters)
