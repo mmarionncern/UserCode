@@ -16,7 +16,7 @@
 //
 // Original Author:  Matthieu Marionneau
 //         Created:  Mon Nov 10 14:59:45 CET 2008
-// $Id: MmZeeAnalyser.cc,v 1.8 2009/03/31 15:01:29 mmarionn Exp $
+// $Id: MmZeeAnalyser.cc,v 1.9 2009/04/08 15:35:54 mmarionn Exp $
 //
 //
 #include "MMarionneau/MmZeeAnalyser/interface/MmZeeAnalyser.h"
@@ -273,7 +273,10 @@ MmZeeAnalyser::MmZeeAnalyser(const edm::ParameterSet& iConfig):
 		     "Mass;Nevts",
 		     200, 0., 200.);
 
-
+ etaMC_distri[DM] = book1D("EtaMC_distri_"+DM,
+			   "Eta distribution of leptons;"
+			   "#eta;Nevts",
+			   120,-6., 6.);
 }
 
 
@@ -349,6 +352,9 @@ MmZeeAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    reco::GenParticleCollection GenParticles = *GenParticlesH;
    
   
+ 
+
+
 
    //liste classifiee des candidats  
    //  vector<reco::CompositeCandidate> ClassifiedZColl;
@@ -359,10 +365,15 @@ MmZeeAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
    //cout<<"test_1"<<endl;
    for(int imode=0;imode<2;imode++)
      {
-   
-
        string DM =DecMod_[imode];
-      
+       int pdgID=0;
+       if (imode==0) pdgID=11;
+       if (imode==1) pdgID=13;
+
+       for(reco::GenParticleCollection::const_iterator itMC = GenParticles.begin(); itMC != GenParticles.end(); itMC++)
+	 if(abs(itMC->pdgId())==pdgID)
+	   fill(etaMC_distri[DM],itMC->eta());
+             
        ClassifiedZColl[ DM ] = ClassZCandidate(ZCandidates[imode],Tracks, DM);
       
        if(analyse_type_ =="TDR")
@@ -450,12 +461,21 @@ MmZeeAnalyser::endJob() {
 
   cout<<endl;
   cout<<"Number of event : "<<EventNumber_<<endl;
-  cout<<"Number of selected Candidates "<<EventNumber_-NoZCandidate_[0]<<endl;
-  cout<<"Number of good candidates (MCT) : "<<GoodCandidate_[0]<<endl;
-  cout<<" total efficiency "<<(float)GoodCandidate_[0]/EventNumber_
-      <<" partial efficiency "<<(float)GoodCandidate_[0]/(EventNumber_-NoZCandidate_[0])<<endl;
-  cout<<"Reconstruction loose "<<NoZCandidate_[0]<<" ->% "
+  cout<<"Number of selected Candidates Zee "<<EventNumber_-NoZCandidate_[0]<<endl;
+  cout<<"Number of good candidates Zee (MCT) : "<<GoodCandidate_[0]<<endl;
+  cout<<" total efficiency Zee "<<(float)GoodCandidate_[0]/EventNumber_
+      <<" partial efficiency Zee "<<(float)GoodCandidate_[0]/(EventNumber_-NoZCandidate_[0])<<endl;
+  cout<<"Reconstruction loose Zee "<<NoZCandidate_[0]<<" ->% "
       <<(float)NoZCandidate_[0]/EventNumber_<<endl;
+
+ cout<<endl;
+  cout<<"Number of event : "<<EventNumber_<<endl;
+  cout<<"Number of selected Candidates Zmumu "<<EventNumber_-NoZCandidate_[1]<<endl;
+  cout<<"Number of good candidates Zmumu (MCT) : "<<GoodCandidate_[1]<<endl;
+  cout<<" total efficiency Zmumu "<<(float)GoodCandidate_[1]/EventNumber_
+      <<" partial efficiency Zmumu "<<(float)GoodCandidate_[1]/(EventNumber_-NoZCandidate_[1])<<endl;
+  cout<<"Reconstruction loose Zmumu "<<NoZCandidate_[1]<<" ->% "
+      <<(float)NoZCandidate_[1]/EventNumber_<<endl;
   
 
 }
@@ -697,6 +717,8 @@ void MmZeeAnalyser::LeptonTruth(const edm::View<pat::Electron>& ElectronColl,
     {
       if(abs(itMC->pdgId())==pdgID)
 	{Nlep++;
+	//fill(etaMC_distri[channel],itMC->eta());
+	
 	if(itMC->numberOfMothers()!=0){
 	  const Candidate * mother = itMC->mother();
 	  if(mother->pdgId()==23)
@@ -967,10 +989,16 @@ MmZeeAnalyser::ZmumuConfLvlFromTDR(const reco::CompositeCandidate& Zmumu){
  dau_Class[1] = originalMuon2->leptonID("robust") +
  2*originalMuon2->leptonID("tight") ;*/
 
-  float global[2]={0,0};
+ 
   
-  global[0] = (int)originalMuon1->isGlobalMuon() + IsoMuon(originalMuon1);
-  global[1] = (int)originalMuon2->isGlobalMuon() + IsoMuon(originalMuon2);
+  /* cout<<"test data "<<Zmumu.daughter(0)->isMuon()
+      <<"  "<<Zmumu.daughter(1)->isMuon()<<endl;
+  cout<<" test data2"<<originalMuon1->isGlobalMuon()
+      <<"  "<<originalMuon2->isGlobalMuon()<<endl;
+  */
+
+  dau_Class[0] = (int)originalMuon1->isGlobalMuon() + IsoMuon(originalMuon1);
+  dau_Class[1] = (int)originalMuon2->isGlobalMuon() + IsoMuon(originalMuon2);
 
  //Filling classification histos
  // fill(Class_dau_0,dau_Class[0]);
@@ -992,6 +1020,7 @@ MmZeeAnalyser::ZmumuConfLvlFromTDR(const reco::CompositeCandidate& Zmumu){
     return 0;
  else
    {
+     cout<<" daughter classification "<<dau_Class[0]<<" ; "<<dau_Class[1]<<endl;
      cout<<endl;
      cout<<" Bad recognition, there is no two Muons in this Z candidate"<<endl;
      return -1;

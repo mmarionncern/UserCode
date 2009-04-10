@@ -21,7 +21,10 @@ process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 
 process.source = cms.Source("PoolSource",
         fileNames = cms.untracked.vstring(
-    'file:Zeedata.root')  
+ #   '/store/mc/Summer08/Zmumu/GEN-SIM-RECO/IDEAL_V9_v1/0004/FC004934-C888-DD11-A240-0015C5E9B30F.root'
+    '/store/mc/2007/11/7/CSA07-DYee_M40_filter-1194479189/0013/0A3FC9C0-2A97-DC11-BEB5-001BFCDBD130.root'
+ #   '/store/mc/Summer08/PhotonJetPt30/GEN-SIM-RECO/IDEAL_V9_v1/0007/0088F7BC-7EDD-DD11-BDC7-0030489453EC.root'
+    )  
    )
 
 

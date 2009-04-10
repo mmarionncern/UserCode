@@ -134,6 +134,7 @@ class MmZeeAnalyser : public edm::EDAnalyzer
    
    map< string, MonitorElement* > deltaMassMC_Z;
    
+   map< string, MonitorElement* > etaMC_distri;
    map< string, MonitorElement* > Eta_MCT;
    map< string, MonitorElement* > Pt_MCT;
    map< string, MonitorElement* > Eta_vs_E_MCT;
