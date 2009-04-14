@@ -16,7 +16,7 @@
 //
 // Original Author:  Matthieu Marionneau
 //         Created:  Mon Nov 10 14:59:45 CET 2008
-// $Id: MmZeeAnalyser.cc,v 1.9 2009/04/08 15:35:54 mmarionn Exp $
+// $Id: MmZeeAnalyser.cc,v 1.10 2009/04/10 12:56:14 mmarionn Exp $
 //
 //
 #include "MMarionneau/MmZeeAnalyser/interface/MmZeeAnalyser.h"
@@ -345,7 +345,8 @@ MmZeeAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
    edm::Handle<reco::GsfTrackCollection> GsfTrackH;
    iEvent.getByLabel(trackCollectionTag_, GsfTrackH);
-   reco::GsfTrackCollection Tracks = *GsfTrackH;
+   // reco::GsfTrackCollection Tracks = *GsfTrackH;
+   Tracks = *GsfTrackH;
 
     edm::Handle<reco::GenParticleCollection> GenParticlesH;
    iEvent.getByLabel(genParticlesTag_, GenParticlesH);
@@ -374,7 +375,7 @@ MmZeeAnalyser::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	 if(abs(itMC->pdgId())==pdgID)
 	   fill(etaMC_distri[DM],itMC->eta());
              
-       ClassifiedZColl[ DM ] = ClassZCandidate(ZCandidates[imode],Tracks, DM);
+       ClassifiedZColl[ DM ] = ClassZCandidate(ZCandidates[imode], DM);
       
        if(analyse_type_ =="TDR")
 	     for(int unsigned iZ=0; iZ<ClassifiedZColl[ DM ].size();iZ++)
@@ -484,7 +485,7 @@ MmZeeAnalyser::endJob() {
 //--------------------- classing Z candidate in the event -----------------------
  vector<reco::CompositeCandidate>
 MmZeeAnalyser::ClassZCandidate(const  reco::CompositeCandidateCollection& ZCandidates,
-			     const reco::GsfTrackCollection Tracks, string channel)
+			       string channel)
 {
   vector<reco::CompositeCandidate> ClassifiedZColl ;
   if(analyse_type_ == "TDR"){
@@ -936,23 +937,27 @@ MmZeeAnalyser::ZeeConfLvlFromTDR(const reco::CompositeCandidate& Zee){
     const pat::Electron *originalElectron2 = dynamic_cast<const pat::Electron *>(Zee.daughter(1)->masterClone().get());
  
 
-  dau_Class[0] = originalElectron1->leptonID("robust") + 
-                2*originalElectron1->leptonID("tight") ;
+    /*  dau_Class[0] = originalElectron1->leptonID("robust") + 
+	2*originalElectron1->leptonID("tight") ;
+	
+	dau_Class[1] = originalElectron2->leptonID("robust") +
+	2*originalElectron2->leptonID("tight") ;
+    */
 
- dau_Class[1] = originalElectron2->leptonID("robust") +
-                2*originalElectron2->leptonID("tight") ;
+    dau_Class[0] = originalElectron1->leptonID("robust") + 2*(int)IsoElectron(originalElectron1,Tracks);
+    dau_Class[1] = originalElectron2->leptonID("robust") + 2*(int)IsoElectron(originalElectron2,Tracks);
 
  //Filling classification histos
- //fill(Class_dau_0,dau_Class[0]);
- //fill(Class_dau_1,dau_Class[1]);
+ fill(Class_dau_0[DecMod_[0]],dau_Class[0]);
+ fill(Class_dau_1[DecMod_[1]],dau_Class[1]);
 
- if(dau_Class[0]==3 && dau_Class[1]==3) //Two electrons are tights. ***
+ if(dau_Class[0]==3 && dau_Class[1]==3) //Two electrons are isolated and robust. ***
    return 4;
- else if(dau_Class[0]==1 && dau_Class[1]==3) //One electron is tight
+ else if(dau_Class[0]==1 && dau_Class[1]==3) //One electron is isolated&robust
    return 3;
  else if(dau_Class[1]==1 && dau_Class[0]==3) // and one is robust. ***
    return 3;
- else if(dau_Class[1]==1 && dau_Class[0]==1) //Two electrons are robust. ***
+ else if(dau_Class[1]==1 && dau_Class[0]==1) //Two electrons are robust, not isolated. ***
    return 2;
  else if(dau_Class[1]==0 && ( dau_Class[0]==3 || dau_Class[0]==1)) //One electron
    return 1;
@@ -983,26 +988,12 @@ MmZeeAnalyser::ZmumuConfLvlFromTDR(const reco::CompositeCandidate& Zmumu){
   const pat::Muon *originalMuon2 = dynamic_cast<const pat::Muon *>(Zmumu.daughter(1)->masterClone().get());
  
 
-  /* dau_Class[0] = originalMuon1->leptonID("robust") + 
-                2*originalMuon1->leptonID("tight") ;
-
- dau_Class[1] = originalMuon2->leptonID("robust") +
- 2*originalMuon2->leptonID("tight") ;*/
-
- 
-  
-  /* cout<<"test data "<<Zmumu.daughter(0)->isMuon()
-      <<"  "<<Zmumu.daughter(1)->isMuon()<<endl;
-  cout<<" test data2"<<originalMuon1->isGlobalMuon()
-      <<"  "<<originalMuon2->isGlobalMuon()<<endl;
-  */
-
-  dau_Class[0] = (int)originalMuon1->isGlobalMuon() + IsoMuon(originalMuon1);
-  dau_Class[1] = (int)originalMuon2->isGlobalMuon() + IsoMuon(originalMuon2);
+  dau_Class[0] = (int)originalMuon1->isGlobalMuon() + 2*(int)IsoMuon(originalMuon1);
+  dau_Class[1] = (int)originalMuon2->isGlobalMuon() + 2*(int)IsoMuon(originalMuon2);
 
  //Filling classification histos
- // fill(Class_dau_0,dau_Class[0]);
- //fill(Class_dau_1,dau_Class[1]);
+  fill(Class_dau_0[DecMod_[0]],dau_Class[0]);
+ fill(Class_dau_1[DecMod_[1]],dau_Class[1]);
 
  if(dau_Class[0]==3 && dau_Class[1]==3) //Two global isolated muons. ***
    return 4;
@@ -1030,7 +1021,7 @@ MmZeeAnalyser::ZmumuConfLvlFromTDR(const reco::CompositeCandidate& Zmumu){
 
 
 
-int 
+bool 
 MmZeeAnalyser::IsoMuon(const pat::Muon*& muon) {
 
   reco::TrackRef Trk = muon->globalTrack();
@@ -1040,9 +1031,33 @@ MmZeeAnalyser::IsoMuon(const pat::Muon*& muon) {
   float CaloIso = Iso.hoEt + Iso.hadEt ;
   
   if(TrackIso < 0.92 && Trk->normalizedChi2() < 10 && CaloIso < 5)
-    return 2;
-  else return 0;
+    return true;
+  else return false;
 
+}
+
+
+bool
+MmZeeAnalyser::IsoElectron(const pat::Electron*& electron,
+			   const reco::GsfTrackCollection& TrackColl  ) {
+  
+  reco::GsfTrackRef Trk = electron->gsfTrack();
+  float sumPt=0;
+  for(reco::GsfTrackCollection::const_iterator itTrack = TrackColl.begin(); itTrack != TrackColl.end();itTrack++)
+    {  
+      if(itTrack->pt()>1.5)
+	{
+	  float Dr = mmDeltaR(electron->eta(),electron->phi(),itTrack->eta(),itTrack->phi(),electron->pt(),itTrack->pt(),false);
+      	  if(Dr<0.6 && Dr>0.02)
+	    sumPt += (itTrack->pt()/electron->pt());
+	}
+    }
+  
+  if(sumPt<0.02)
+    return true;
+  else 
+    return false;
+  
 }
 
 

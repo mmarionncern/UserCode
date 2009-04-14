@@ -81,6 +81,11 @@ class MmZeeAnalyser : public edm::EDAnalyzer
   InputTag trackCollectionTag_;
 
   std::string analyse_type_;
+
+
+  //Track collection
+  reco::GsfTrackCollection Tracks;
+
   
   //Number of electron in the event
   int NumberElectron_;
@@ -167,7 +172,7 @@ class MmZeeAnalyser : public edm::EDAnalyzer
 
   // Z analyse functions
   vector<reco::CompositeCandidate> ClassZCandidate(const  reco::CompositeCandidateCollection& ZCandidates,
-						     const reco::GsfTrackCollection Tracks, string channel);
+						   string channel);
 
   //Z "Confidence level" calculation with conditions
   int ZConfLvlFromTDR(const reco::CompositeCandidate& Z, string channel); //using TDR criteria
@@ -183,8 +188,13 @@ class MmZeeAnalyser : public edm::EDAnalyzer
 
  //Electron Filling/analyse functions
   void LeptonFromZAnalysis(const reco::CompositeCandidate& Zee, string channel);
+
   //Muon isolation
-  int IsoMuon(const pat::Muon*& muon);
+  bool IsoMuon(const pat::Muon*& muon);
+
+  //Electron isolation
+  bool IsoElectron(const pat::Electron*& electron, const reco::GsfTrackCollection& Tracks);
+
 
  // Wrapper to fill methods of DQM monitor elements.
    
