@@ -13,7 +13,7 @@
 //
 // Original Author:  Matthieu Pierre Marionneau,27 2-005,+41227673174,
 //         Created:  Tue Aug 23 09:36:19 CEST 2011
-// $Id$
+// $Id: CleanMETProducer.cc,v 1.1.1.1 2011/08/24 16:23:39 mmarionn Exp $
 //
 //
 
@@ -61,12 +61,6 @@ CleanMETProducer::CleanMETProducer(const edm::ParameterSet& iConfig)
 
   debug_ = false;
   
-  //  refresh();
-
-  pfMETH = new TH1F("pfMETH","pfMET",500,0,500);
-  cleanMETH = new TH1F("cleanMETH","cleanMET",500,0,500);
-  cpuMETH = new TH1F("cpuMETH","cpuMET",500,0,500);
-
 }
 
 
@@ -117,12 +111,6 @@ CleanMETProducer::beginJob()
 
 void 
 CleanMETProducer::endJob() {
-
-  TFile outFile("testPlot.root","RECREATE");
-  pfMETH->Write();
-  cleanMETH->Write();
-  cpuMETH->Write();
-  outFile.Close();
 
 }
 
@@ -307,9 +295,6 @@ CleanMETProducer::computeMinMET( reco::MET cleanMET) {
   if(debug_)  cout<<" ??? clean "<<cleanMET.pt()<<" < "
 		  <<pfT1MET.pt()<<" pf -->";
  
-  pfMETH->Fill( pfT1MET.pt() );
-  cleanMETH->Fill( cleanMET.pt() );
-  cpuMETH->Fill( min(pfT1MET.pt(),cleanMET.pt()) );
 
  if(cleanMET.pt() < pfT1MET.pt() )
     { 

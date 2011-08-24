@@ -12,7 +12,7 @@
 //
 // Original Author:  Matthieu Pierre Marionneau,27 2-005,+41227673174,
 //         Created:  Tue Aug 23 09:36:19 CEST 2011
-// $Id$
+// $Id: CleanMETProducer.h,v 1.1.1.1 2011/08/24 16:23:39 mmarionn Exp $
 //
 //
 
@@ -171,12 +171,5 @@ private:
   double jDirHSThr;
   double jMatchDR;
   double jMatchBal;
-
-
-  ////Control plots
-  TH1F* pfMETH;
-  TH1F* cleanMETH;
-  TH1F* cpuMETH;
-
 
 };
