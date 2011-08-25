@@ -6,7 +6,7 @@ cleanMETProducer = cms.EDProducer('CleanMETProducer',
    pfCandidateInput = cms.InputTag("particleFlow"),
    vertexInput = cms.InputTag("offlinePrimaryVertices"),
    trackInput = cms.InputTag("generalTracks"),                               
-   vtxObjectInput = cms.InputTag("selectedPatElectrons"),
+   vtxObjectInput = cms.InputTag("ZeeCandidates"),
    refObjectInput = cms.InputTag("ZeeCandidates"),
 
    nRefObjectInCol = cms.untracked.int32(0),

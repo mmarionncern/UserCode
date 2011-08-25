@@ -12,7 +12,7 @@
 //
 // Original Author:  Matthieu Pierre Marionneau,27 2-005,+41227673174,
 //         Created:  Tue Aug 23 09:36:19 CEST 2011
-// $Id: CleanMETProducer.h,v 1.1.1.1 2011/08/24 16:23:39 mmarionn Exp $
+// $Id: CleanMETProducer.h,v 1.2 2011/08/24 16:33:41 mmarionn Exp $
 //
 //
 
@@ -135,15 +135,17 @@ private:
   edm::InputTag vtxObjectCollection_;
   edm::InputTag refObjectCollection_;
 
+  // DefUser
   edm::Handle< reco::METCollection >         pfT1MET_h_;
   edm::Handle< pat::JetCollection >          pfJets_h_;
+  
   edm::Handle< reco::PFCandidateCollection > pfCandidates_h_;
   edm::Handle< reco::VertexCollection >      vertices_h_;
   edm::Handle< reco::TrackCollection >       tracks_h_;
 
-  // UserDef
-  edm::Handle< reco::CandidateCollection >   vtxObject_h_;
-  edm::Handle< reco::CandidateCollection >   refObject_h_;
+  // DefUser
+  edm::Handle< reco::CompositeCandidateCollection >   vtxObject_h_;
+  edm::Handle< reco::CompositeCandidateCollection >   refObject_h_;
 
   std::string cleanMETName_;
   std::string minMETName_;

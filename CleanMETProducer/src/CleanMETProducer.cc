@@ -13,7 +13,7 @@
 //
 // Original Author:  Matthieu Pierre Marionneau,27 2-005,+41227673174,
 //         Created:  Tue Aug 23 09:36:19 CEST 2011
-// $Id: CleanMETProducer.cc,v 1.1.1.1 2011/08/24 16:23:39 mmarionn Exp $
+// $Id: CleanMETProducer.cc,v 1.2 2011/08/24 16:33:41 mmarionn Exp $
 //
 //
 
@@ -79,8 +79,8 @@ CleanMETProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 
 
   //User needs to define precisely the class of the reference object
-  // UserDef
-  const reco::Candidate* refObject = &(*refObject_h_)[nro];
+  // DefUser
+  const reco::CompositeCandidate* refObject = &(*refObject_h_)[nro];
   
 
   //MET computation
@@ -170,19 +170,19 @@ CleanMETProducer::defineHardScatterVertex() {
    
     if(udvN != -1 && (size_t)udvN <vtxObject_h_->size() ) {
    
-      // UserDef
-      reco::CandidateRef cand(vtxObject_h_, udvN );
-     // UserDef
-      const reco::Vertex* vtmp = vertexMatchingBC<reco::CandidateRef>( cand );
+      //DefUser
+      reco::CompositeCandidateRef cand(vtxObject_h_, udvN );
+      //DefUser
+      const reco::Vertex* vtmp = vertexMatchingBC<reco::CompositeCandidateRef>( cand );
       const reco::Vertex hsVtx = (*vtmp);
       return hsVtx;
     }
     else {
 
-      // UserDef
-      reco::CandidateRef cand(vtxObject_h_, 0 );
-      // UserDef
-      const reco::Vertex* vtmp = vertexMatchingBC<reco::CandidateRef>( cand );
+      // DefUser
+      reco::CompositeCandidateRef cand(vtxObject_h_, 0 );
+      // DefUser
+      const reco::Vertex* vtmp = vertexMatchingBC<reco::CompositeCandidateRef>( cand );
       const reco::Vertex hsVtx = (*vtmp);
       return hsVtx;
     }
@@ -290,6 +290,7 @@ CleanMETProducer::computeMinMET( reco::MET cleanMET) {
   if( !pfT1MET_h_.isValid() ) 
     { cout<<" Error, no jets loaded "<<endl; abort();}
  
+  //DefUser
   reco::MET pfT1MET = (*pfT1MET_h_)[0];
 
   if(debug_)  cout<<" ??? clean "<<cleanMET.pt()<<" < "
@@ -334,6 +335,7 @@ CleanMETProducer::jetPart(const reco::Candidate* refObject,  const reco::Vertex 
   bool findjet=false;
   for(int unsigned ij=0; ij<pfJets_h_->size(); ij++ ) {
 
+    //DefUser
    pat::JetRef jet(pfJets_h_,ij);
  
    bool isHSVtx = isHardScatterVertexJet( dynamic_cast<const reco::Jet*>(jet.get() ), hsVtx );
@@ -363,6 +365,7 @@ CleanMETProducer::jetPart(const reco::Candidate* refObject,  const reco::Vertex 
 
    tmp.Set(0.,0.);
 
+   //DefUser
    pat::JetRef jet(pfJets_h_,ij);
    assocJet=false;
  
