@@ -8,23 +8,25 @@ from PhysicsTools.PatAlgos.patTemplate_cfg import *
 
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
-    'rfio:/castor/cern.ch/user/m/mmarionn/DYToEESummer11.root' 
+    'file:/tmp/mmarionn/ZmmFall11_44.root' 
     ),
 #    skipEvents = cms.untracked.uint32(0)                        
 )
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(100)
+    input = cms.untracked.int32(10)
     )
 
 
 ##
 ## To remove the "begin job processing line " from printing
 ##
-process.MessageLogger = cms.Service("MessageLogger",
-    destinations = cms.untracked.vstring('cout'),
-    cout         = cms.untracked.PSet(threshold = cms.untracked.string('WARNING'))
-)
+process.load("FWCore.MessageLogger.MessageLogger_cfi")
+process.MessageLogger.cerr.FwkReport.reportEvery = 100
+#process.MessageLogger = cms.Service("MessageLogger",
+#    destinations = cms.untracked.vstring('cout'),
+#    cout         = cms.untracked.PSet(threshold = cms.untracked.string('WARNING'))
+#)
 
 
 ##
@@ -37,7 +39,7 @@ process.load("MMarionneau.CleanMETProducer.cleanMETProducer_cfi")
 ##
 
 from Configuration.StandardSequences.FrontierConditions_GlobalTag_cff import *
-process.GlobalTag.globaltag = cms.string('START42_V13::All')
+process.GlobalTag.globaltag = cms.string('START44_V12::All')
 
 ##
 ## Simple example of objects needed for vertex recognization, here Zee
@@ -70,28 +72,54 @@ removeMCMatching(process, ['All'])
 
 
 ##
+## Produce the pfMET Type I corrected
+##
+process.load("JetMETCorrections.Type1MET.pfMETCorrections_cff")
+
+## Tune for MET correction : data/MC --> ak5PFL1FastL2L3Residual // ak5PFL1FastL2L3
+process.pfJetMETcorr.jetCorrLabel = cms.string("ak5PFL1FastL2L3")
+
+
+##
 ## Jet configuration (get corrected jet for Type I MET computation )
 ##
 from PhysicsTools.PatAlgos.tools.jetTools import *
-from PhysicsTools.PatAlgos.tools.pfTools import *
-switchToPFJets(process, cms.InputTag('pfJets'), algo='AK5', postfix ="", jetCorrections=('AK5PFchs',['L2Relative', 'L3Absolute', 'Uncertainty'] ))
+switchJetCollection(process, cms.InputTag('ak5PFJets'),
+                    doJTA            = False,            
+                    doBTagging       = False,            
+                    jetCorrLabel     =  ('AK5PF',['L1FastJet','L2Relative', 'L3Absolute','Uncertainty'] ), #L2L3Residual
+                    doType1MET       = False,            
+                    genJetCollection = cms.InputTag("ak5GenJets"),
+                    doJetID      = False,
+                    jetIdLabel   = "ak5"
+                    )
+
 
 ## If data, add the 'L2L3Residual' correction
+
+##-------------------- Turn-on the FastJet density calculation into PAT -----------------------
+process.load("JetMETCorrections.Configuration.DefaultJEC_cff")
+process.kt6PFJets.doRhoFastjet = True
+process.patJetCorrFactors.useRho = cms.bool(True)
+process.patJetCorrFactors.rho = cms.InputTag("kt6PFJets:rho:PAT")
+process.patJetCorrFactors.useNPV = cms.bool(False)
+
 
 ##
 ## process path
 ##
 process.p = cms.Path(
-   
-    # PAT, needed in the current implementation of typeI MET
-    # and in the current example, it can be changed by the user
+     # Get Rho  correction for L1FastJet
+    process.kt6PFJets*
+    # PAT, used in the current example to get the candidates used
+    # in the producer (except pFT1MET), it can be changed by the user
     # but needs to change the jet format in the CleanMETProducer
-    process.PF2PAT*
     process.patDefaultSequence*
-    process.metJESCorPFAK5*
+    # create the pfMET typeI corrected
+    process.producePFMETCorrections*
 
     ### Configurable part of the analysis
-      process.goodElectrons
+    process.goodElectrons
     * process.ZeeCandidates
     * process.ZeeFilter
 

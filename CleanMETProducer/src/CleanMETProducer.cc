@@ -13,7 +13,7 @@
 //
 // Original Author:  Matthieu Pierre Marionneau,27 2-005,+41227673174,
 //         Created:  Tue Aug 23 09:36:19 CEST 2011
-// $Id: CleanMETProducer.cc,v 1.2 2011/08/24 16:33:41 mmarionn Exp $
+// $Id: CleanMETProducer.cc,v 1.3 2011/08/25 09:38:04 mmarionn Exp $
 //
 //
 
@@ -199,7 +199,7 @@ CleanMETProducer::defineHardScatterVertex() {
 template <class T>
 bool CleanMETProducer::isHardScatterVertexBC(T cand, const reco::Vertex hsVtx) {
 
-  //This function test the origin of a 
+  //This function tests the origin of a 
   // basic candidate (all candidates but not a jet)
 
   bool isMatch=false;
@@ -288,10 +288,10 @@ CleanMETProducer::computeMinMET( reco::MET cleanMET) {
 
 
   if( !pfT1MET_h_.isValid() ) 
-    { cout<<" Error, no jets loaded "<<endl; abort();}
+    { cout<<" Error, no MET loaded "<<endl; abort();}
  
   //DefUser
-  reco::MET pfT1MET = (*pfT1MET_h_)[0];
+  reco::PFMET pfT1MET = (*pfT1MET_h_)[0];
 
   if(debug_)  cout<<" ??? clean "<<cleanMET.pt()<<" < "
 		  <<pfT1MET.pt()<<" pf -->";

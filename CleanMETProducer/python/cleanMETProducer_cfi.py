@@ -1,7 +1,7 @@
 import FWCore.ParameterSet.Config as cms
 
 cleanMETProducer = cms.EDProducer('CleanMETProducer',
-   pfMETInput    = cms.InputTag("metJESCorPFAK5"),                     
+   pfMETInput    = cms.InputTag("pfType1CorrectedMet"),                     
    pfJETInput = cms.InputTag("selectedPatJets"),
    pfCandidateInput = cms.InputTag("particleFlow"),
    vertexInput = cms.InputTag("offlinePrimaryVertices"),
@@ -25,26 +25,3 @@ cleanMETProducer = cms.EDProducer('CleanMETProducer',
     jetMatchBal = cms.untracked.double(0.8), 
                                   
 )
-
-
-##
-## Missing ET Type I Correction
-##
-
-from JetMETCorrections.Configuration.DefaultJEC_cff import *
-from JetMETCorrections.Type1MET.MetType1Corrections_cff import metJESCorAK5PFJet
-metJESCorPFAK5 = metJESCorAK5PFJet.clone()
-metJESCorPFAK5.inputUncorJetsLabel = "pfJets"
-metJESCorPFAK5.metType = "PFMET"
-metJESCorPFAK5.inputUncorMetLabel = "pfMet"
-metJESCorPFAK5.useTypeII = False
-metJESCorPFAK5.jetPTthreshold = cms.double(10.0)
-
-#######################################################
-
-
-###
-### The PF2PAT section to get the good pfJet collection to make the pfTypeI collection
-### Needed here for tricky reasons
-
-from CommonTools.ParticleFlow.PF2PAT_cff import *

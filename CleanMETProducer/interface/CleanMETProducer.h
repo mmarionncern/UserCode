@@ -12,7 +12,7 @@
 //
 // Original Author:  Matthieu Pierre Marionneau,27 2-005,+41227673174,
 //         Created:  Tue Aug 23 09:36:19 CEST 2011
-// $Id: CleanMETProducer.h,v 1.2 2011/08/24 16:33:41 mmarionn Exp $
+// $Id: CleanMETProducer.h,v 1.3 2011/08/25 09:38:03 mmarionn Exp $
 //
 //
 
@@ -136,7 +136,7 @@ private:
   edm::InputTag refObjectCollection_;
 
   // DefUser
-  edm::Handle< reco::METCollection >         pfT1MET_h_;
+  edm::Handle< reco::PFMETCollection >       pfT1MET_h_;
   edm::Handle< pat::JetCollection >          pfJets_h_;
   
   edm::Handle< reco::PFCandidateCollection > pfCandidates_h_;
