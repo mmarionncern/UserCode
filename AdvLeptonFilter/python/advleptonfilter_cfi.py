@@ -1,3 +1,5 @@
+import FWCore.ParameterSet.Config as cms
+
 
 AdvFilter = cms.EDFilter('AdvLeptonFilter',
 
@@ -21,6 +23,11 @@ AdvFilter = cms.EDFilter('AdvLeptonFilter',
 ### for jets -> no very loose Id, official ID provided by the JetMET group
 ### for MET -> no ID available                         
 ###
+### The ! statement : if a ! replace the number of objects requested, the event is vetoed if a such object
+### exists (e.g : !j_50 which rejects events containing a jet with a pT > 50 GeV)
+### MM 08/29/12 : Need to be tested when it is used with an ID working point but it should work                         
+###
+###                         
 ### Examples :
 ### to select one muon of 20 GeV, the selction should be written as 1m_20
 ### for one electron of 25 GeV with loose ID : 1e_20L

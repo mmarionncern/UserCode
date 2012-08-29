@@ -13,7 +13,7 @@
 //
 // Original Author:  Matthieu Pierre Marionneau,8 R-019,+41227675765,
 //         Created:  Tue Aug  7 11:56:39 CEST 2012
-// $Id$
+// $Id: AdvLeptonFilter.cc,v 1.1 2012/08/07 10:51:53 mmarionn Exp $
 //
 //
 #include "MMarionneau/AdvLeptonFilter/interface/AdvLeptonFilter.h"
@@ -178,6 +178,9 @@ AdvLeptonFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
        tauV3.SetPtEtaPhi(Tau->pt(), Tau->eta(), Tau->phi() );
        bool match = false;
 
+       //if(Tau->pt()>10)
+       // cout<<" ====> tau? "<<Tau->pt()<<endl;
+
        for(size_t ie=0;ie<els.size();ie++) {
 	 if(els[ie].DrEtaPhi( tauV3) < 0.3 )
 	   {match =true; break;}
@@ -189,8 +192,13 @@ AdvLeptonFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
        }
        if(match) continue;
        
+     
+
        string id= tauID( Tau );
-       
+     
+       //       if(Tau->pt()>10)
+       //	 cout<<" ----> tau! "<<Tau->pt()<<"  "<<id<<endl;
+  
        SetCateg("t",(int)Tau->pt(), id);
 
        if( Tau->pt() > 10 ) {
@@ -259,6 +267,9 @@ AdvLeptonFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
 	   {match =true; break;}
        }
        if(match) continue;
+
+       //FIXME
+       //if(jet->pt()>50 ) cout<<" SUPER JET ============= > "<<jet->pt()<<endl;
 
        string id = jetID( jet );
 
@@ -424,7 +435,7 @@ AdvLeptonFilter::tauID(const pat::TauRef tau) {
   if(tau->tauID("byMediumCombinedIsolationDeltaBetaCorr") && 
      tau->tauID("againstMuonLoose") &&
      tau->tauID("againstElectronLoose") ) {
-    id="L";
+    id="T";
   }
   
   return id;
@@ -544,6 +555,8 @@ AdvLeptonFilter::parser(vector<string> sels) {
 
     //cout<<"============================= line : "<<sel<<endl;
 
+    bool invC=false;
+
     while(!end) {
     
       if(nB==nb) {
@@ -566,17 +579,23 @@ AdvLeptonFilter::parser(vector<string> sels) {
       pos1 = pos;
       
       if(f) {
-	
-	nB = atoi(block.substr(0,1).c_str());
+	if(block.substr(0,1)=="!")
+	  { nB = 1; invC=true;}
+	else
+	  nB = atoi(block.substr(0,1).c_str());
 	key = block.substr(1,1);
 	f=false;
       }
       else {
 
-
-	
 	if(block.size()==2) {
-	  id.push_back( block+"N" );
+	  
+	  if(invC) {
+	    id.push_back( block+"!" );
+	    invC=false;
+	  }
+	  else
+	    id.push_back( block+"N" );
 
 	  bool reg=false;
 	  for(size_t it=0;it<thrs.size();it++)
@@ -685,19 +704,34 @@ AdvLeptonFilter::SetCateg(string T, int pT, string Id) {
   else
     ids.push_back("N");
 
+  ids.push_back("!");
+  
+
   string key;
   for(size_t ip=0;ip<pdg.size();ip++) {
     for(size_t im=0;im<pTs.size();im++) {
       for(size_t ii=0;ii<ids.size();ii++) {
 	key = pdg[ip]+pTs[im]+ids[ii];
 	
-	for(size_t is=0;is<_selMaps.size();is++) {
-	  iter = _selMaps[ is ].find(key);
-	
-	  if(iter != _selMaps[ is ].end() ) {
-	
- 	     _selMaps[ is ][ (*iter).first ] -= 1;
- 	  }
+	if(ids[ii]=="!") {
+	  for(size_t is=0;is<_selMaps.size();is++) {
+	    iter = _selMaps[ is ].find(key);
+	    
+	    if(iter != _selMaps[ is ].end() ) {
+	      
+	      _selMaps[ is ][ (*iter).first ] += 1;
+	    }
+	  }
+	}
+	else {
+	  for(size_t is=0;is<_selMaps.size();is++) {
+	    iter = _selMaps[ is ].find(key);
+	    
+	    if(iter != _selMaps[ is ].end() ) {
+	      
+	      _selMaps[ is ][ (*iter).first ] -= 1;
+	    }
+	  }
 	  
 	}
       }
@@ -705,7 +739,7 @@ AdvLeptonFilter::SetCateg(string T, int pT, string Id) {
   }
 
 
-
+  
 }
 
 bool 
@@ -713,19 +747,29 @@ AdvLeptonFilter::acceptEvent() {
 
   bool acc=false;
 
+  bool debug=false;
+
   for(size_t i=0;i<_selMaps.size();i++) {
     
+    if(debug)
+      cout<<"====== new map ===== "<<endl;
+
     string selName;
     bool accept=true;
     for(iter=_selMaps[i].begin();
 	iter!=_selMaps[i].end();iter++) {
       
-
+      if(debug)
+	cout<<"\t --> "<<iter->first<<" = "<<iter->second<<endl;
 
       selName += (*iter).first+"_";
       if( (*iter).second > 0 ) {accept=false; break;}
 
     }
+
+    if(debug)
+      cout<<" map "<<selName<<" accepted ? "<<accept<<endl;
+
     if(accept) { acc=true; counter[ i ].second += 1; }
   }
  
@@ -828,12 +872,18 @@ idMap AdvLeptonFilter::MergeSels( idMap s1, idMap s2) {
   for(iter = s2.begin();iter!=s2.end();iter++) {
 
     itS = s2.find( iter->first );
-    if(itS == s2.end() )  
-      o[ iter->first ]=iter->second;
-    else
-      o[ iter->first ]+=iter->second;
-  }
 
+    if(iter->first.find("!")!=(size_t)-1) {
+      o[ iter->first ]=0;
+    }
+    else {
+      if(itS == s2.end() )  
+	o[ iter->first ]=iter->second;
+      else
+	o[ iter->first ]+=iter->second;
+    }
+  }
+  
   return o;
 }
 
