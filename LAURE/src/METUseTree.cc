@@ -154,7 +154,7 @@ METUseTree::FillMETTree() {
       if(ie==0) {
 	//	ie += 7080;
 	vc.FinalizeInit();
-	vc.BuildTree( tChains[i], 0 );
+	vc.BuildTree( tChains[i] );
 	// if(skimming) {
 	//  oFile = new TFile( ("Skimming/"+name[i]+"_skim.root").c_str(),"RECREATE");
 	//   tChains[i]->LoadTree(0);
@@ -218,7 +218,6 @@ METUseTree::FillMETTree() {
       //   if(!MakeCut<float>( vc.getF("ptZ"), 10., "[]", i, "qt cut",Weight,20.)) continue;
       // if(!MakeCut<float>( vc.getF("eta_m1"), -1.3, "]![", i, "eta1 cut",Weight,1.3)) continue;
       // if(!MakeCut<float>( vc.getF("eta_m2"), -1.3, "]![", i, "eta2 cut",Weight,1.3)) continue;
-
       
       if(i==nt) {
 	l1.SetPtEtaPhiM(vc.getF("pt_m1"), vc.getF("eta_m1"), vc.getF("phi_m1"), 0.105);
@@ -240,13 +239,21 @@ METUseTree::FillMETTree() {
 	l2U = l2;
 	l1U *= rnd.Gaus(1,0.02);
 	l2U *= rnd.Gaus(1,0.02);
-	histoManager.fillUnc("qT", "MES",i, (l1U+l2U).Pt(), Weight, "" );
-	histoManager.fillUnc("mass", "MES",i, (l1U+l2U).M(), Weight, "" );
+	// histoManager.fillUnc("qT", "MES",i, (l1U+l2U).Pt(), Weight, "" );
+	// histoManager.fillUnc("mass", "MES",i, (l1U+l2U).M(), Weight, "" );
 
       }
 
       Zv4 = l1+l2;
       
+      //FIXME ============= uperp ankle study
+      qT.SetMagPhi( vc.getF("ptZ"), vc.getF("phiZ") ); //old Z
+      //   mettmp.SetMagPhi(vc.getF("pat_patType1CorrectedPFMet__pt"),vc.getF("pat_patType1CorrectedPFMet__phi") );
+      
+      //if(!MakeCut<float>( vc.getF("ptZ"), 120, "[]", i, "qT cut", Weight, 170)) continue;
+    	       
+      //cout<<" qT-> "<<vc.getF("ptZ")<<"  "<<Zv4.Pt()<<endl;
+
       histoManager.fill("qT", i, Zv4.Pt() /*vc.getF("ptZ")*/ , Weight);
       histoManager.fill("mass", i, Zv4.M() /*vc.getF("massZ")*/ , Weight);
 
@@ -255,7 +262,7 @@ METUseTree::FillMETTree() {
 
       histoManager.fill("Tmass", i, MT , Weight);
 
-      qT.SetMagPhi( vc.getF("ptZ"), vc.getF("phiZ") ); //old Z
+     
       
       histoManager.fill("ptl1",i,l1.Pt()/*vc.getF("pt_m1")*/,Weight);
       histoManager.fill("ptl2",i,l2.Pt()/*vc.getF("pt_m2")*/,Weight);
@@ -270,7 +277,7 @@ METUseTree::FillMETTree() {
       //
 
       for(size_t im=0;im<mets.size();im++) {
-	
+
       	//exceptions...
       	if(SimpleCut<bool>(isD,true,"=")) {
 	  bool isExp=false;
@@ -657,7 +664,8 @@ void
 METUseTree::prepareMETHistos(string name) {
 
   histoManager.AddVariable( name+"MET",400,0,400,"#slash{E}_{T} [GeV]", name+"MET" );
-  histoManager.AddVariable( name+"Phi",128,0,TMath::Pi()*2,"#phi(#slash{E}_{T}) [GeV]", name+"Phi" );
+  histoManager.AddVariable( name+"Phi",128,0,TMath::Pi()*2,"#phi(#slash{E}_{T}) [rad]", name+"Phi" );
+  histoManager.AddVariable( name+"DPhi",128,0,TMath::Pi(),"#Delta#phi(#slash{E}_{T},q_{T}) [rad]", name+"Phi" );
   histoManager.AddVariable( name+"X",400,-200,200,"#slash{E}_{T,X} [GeV]", name+"X" );
   histoManager.AddVariable( name+"Y",400,-200,200,"#slash{E}_{T,Y} [GeV]", name+"Y" );
   
@@ -665,8 +673,8 @@ METUseTree::prepareMETHistos(string name) {
  
 
   histoManager.AddVariable( name+"Upara",800,-600,200,"u_{||} [GeV]", name+"Upara" );
-  histoManager.AddVariable( name+"Uperp",400,-200,200,"u_{#perp}   [GeV]", name+"Uperp" );
-  histoManager.AddVariable( name+"redUpara",400,-200,200,"u_{||}+q_{T} [GeV]", name+"redUpara" );
+  histoManager.AddVariable( name+"Uperp",800,-400,400,"u_{#perp}   [GeV]", name+"Uperp" );
+  histoManager.AddVariable( name+"redUpara",800,-400,400,"u_{||}+q_{T} [GeV]", name+"redUpara" );
   
   histoManager.AddProfVariable( name+"RespvsNvtx",40,0,40,"number of vertices","<u_{||}/q_{T}> [GeV]");
 
@@ -698,6 +706,7 @@ METUseTree::fillMETHistos(string name, TVector2 met, TVector2 qT, int nvtx, floa
 
   histoManager.fill( name+"MET",i, met.Mod() , Weight );  
   histoManager.fill( name+"Phi",i, met.Phi() , Weight );  
+  histoManager.fill( name+"DPhi",i, fabs(met.DeltaPhi(qT)) , Weight );  
 
   histoManager.fill( name+"X",i, met.X() , Weight );  
   histoManager.fill( name+"Y",i, met.Y() , Weight ); 
@@ -706,6 +715,8 @@ METUseTree::fillMETHistos(string name, TVector2 met, TVector2 qT, int nvtx, floa
   float upara = (float)(( qT*u)/qT.Mod());
   u = u.Rotate( TMath::Pi()/2);
   float uperp = (float)(( qT*u)/qT.Mod());
+
+  //cout<<met.Mod()<<"   "<<qT.Mod()<<"   "<<upara<<"  "<<uperp<<endl;
   histoManager.fill( name+"Upara",i, upara , Weight );
   histoManager.fill( name+"Uperp",i, uperp , Weight );
   histoManager.fill( name+"redUpara",i, upara+qT.Mod() , Weight ); 
