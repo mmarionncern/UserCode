@@ -4,12 +4,12 @@ import FWCore.ParameterSet.Config as cms
 AdvFilter = cms.EDFilter('AdvLeptonFilter',
 
   ElectronInput = cms.InputTag('patElectrons'),
-  MuonInput = cms.InputTag('muons'),
+  MuonInput = cms.InputTag('patMuons'),
   TauInput = cms.InputTag('selectedPatTaus'),                          
-  PhotonInput = cms.InputTag('photons'),
-  PFJetInput = cms.InputTag('ak5PFJets'), #   ak5PFJetsL1L2L3                 
+  PhotonInput = cms.InputTag('patPhotons'),
+  PFJetInput = cms.InputTag('patJets'), #   ak5PFJetsL1L2L3                 
 
-  MetInput = cms.InputTag('pfMet'), #pfType1CorrectedMet
+  MetInput = cms.InputTag('patType1CorrectedPFMet'), #pfType1CorrectedMet
 
 ### selections follow the convention :
 ### e -> electron, m -> muon, t -> tau (hadronic), p -> photon, j -> jet, h -> MET

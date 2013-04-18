@@ -13,7 +13,7 @@
 //
 // Original Author:  Matthieu Pierre Marionneau,8 R-019,+41227675765,
 //         Created:  Tue Aug  7 11:56:39 CEST 2012
-// $Id: AdvLeptonFilter.cc,v 1.1 2012/08/07 10:51:53 mmarionn Exp $
+// $Id: AdvLeptonFilter.cc,v 1.2 2012/08/29 15:11:33 mmarionn Exp $
 //
 //
 #include "MMarionneau/AdvLeptonFilter/interface/AdvLeptonFilter.h"
@@ -139,31 +139,29 @@ AdvLeptonFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
    TVector3 tmp(0,0,0);
 
 
-   for(unsigned int ie=0;ie<e_h->size();ie++) {
+   for( std::vector<pat::Electron>::const_iterator it = e_h->begin(); it != e_h->end(); ++it) {
 
-     reco::GsfElectronRef Electron(e_h,ie);
+     //pat::ElectronRef Electron(e_h,ie);
      
-     string id = elID(Electron);
+     string id = elID(it);
      
-     SetCateg("e",(int)Electron->pt(), id);
+     SetCateg("e",(int)it->pt(), id);
 
-     if( Electron->pt() > 10 ) {
-       tmp.SetPtEtaPhi( Electron->pt(), Electron->eta(), Electron->phi() ); 
+     if( it->pt() > 10 ) {
+       tmp.SetPtEtaPhi( it->pt(), it->eta(), it->phi() ); 
        els.push_back(tmp);
      }
    }
      
-   for(reco::MuonCollection::const_iterator itm=m_h->begin();
+   for(std::vector<pat::Muon>::const_iterator itm=m_h->begin();
        itm !=m_h->end(); ++itm)
      {
-       const reco::Muon Muon = *itm; 
-
-       string id= muID( &Muon );
+       string id= muID( itm );
        
-       SetCateg("m",(int)Muon.pt(), id);
+       SetCateg("m",(int)itm->pt(), id);
 
-       if( Muon.pt() > 10 ) {
-	 tmp.SetPtEtaPhi( Muon.pt(), Muon.eta(), Muon.phi() ); 
+       if( itm->pt() > 10 ) {
+	 tmp.SetPtEtaPhi( itm->pt(), itm->eta(), itm->phi() ); 
 	 mus.push_back(tmp);
        }
 
@@ -212,14 +210,14 @@ AdvLeptonFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
    
    //Photon==========
    TVector3 phV3(0,0,0);
-   for(reco::PhotonCollection::const_iterator itp=p_h->begin();
+   for(std::vector<pat::Photon>::const_iterator itp=p_h->begin();
        itp !=p_h->end(); ++itp)
      {
-       const reco::Photon& Photon = *itp; 
+       //const reco::Photon& Photon = *itp; 
 
-       if(Photon.pt()< 20 ) continue;
+       if(itp->pt()< 20 ) continue;
 
-       phV3.SetPtEtaPhi(Photon.pt(), Photon.eta(), Photon.phi() );
+       phV3.SetPtEtaPhi(itp->pt(), itp->eta(), itp->phi() );
        bool match = false;
 
        for(size_t ie=0;ie<els.size();ie++) {
@@ -228,11 +226,11 @@ AdvLeptonFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
        }
        if(match) continue;
 
-       string id = photonID( &Photon );
+       string id = photonID( itp );
 
-       SetCateg("p",(int)Photon.pt(), id);
+       SetCateg("p",(int)itp->pt(), id);
 
-       tmp.SetPtEtaPhi( Photon.pt(), Photon.eta(), Photon.phi() ); 
+       tmp.SetPtEtaPhi( itp->pt(), itp->eta(), itp->phi() ); 
        phs.push_back(tmp);
 
      }
@@ -241,7 +239,7 @@ AdvLeptonFilter::filter(edm::Event& iEvent, const edm::EventSetup& iSetup)
    TVector3 jetV3(0,0,0);
    for(size_t ijet=0; ijet<jets_h->size();ijet++)
      {
-       const reco::PFJetRef jet(jets_h, ijet); 
+       pat::JetRef jet(jets_h, ijet); 
 
        if(jet->pt()< 20 ) continue;
 
@@ -342,34 +340,39 @@ AdvLeptonFilter::endJob() {
 //IDs ==========================
 
 string 
-AdvLeptonFilter::muID(const reco::Muon* mu) {
+AdvLeptonFilter::muID(std::vector<pat::Muon>::const_iterator mu) {
 
   string id="N";
 
   if( !mu->isGlobalMuon() ) return id;
-  if( !mu->isTrackerMuon() ) return id;
+  //if( !mu->isTrackerMuon() ) return id;
+  if( !mu->isPFMuon() ) return id;
 
   id="V";
   
   reco::TrackRef track_ = mu->globalTrack();
   float dxy = (float)( track_->dxy(beamSpot_h_->position()));
-  int trackerHits = track_->hitPattern().numberOfValidTrackerHits();
+  float dz = (float)( track_->dz(beamSpot_h_->position()));
+  int trackerHits = track_->hitPattern().trackerLayersWithMeasurement();
   int pixelHits = track_->hitPattern().numberOfValidPixelHits();
-  int muonHits = track_->hitPattern().numberOfValidMuonHits();
-  int nMatches = mu->numberOfMatches();
-   
-  if( pixelHits+muonHits+trackerHits < 10 ) return id;
+  float chi2=mu->globalTrack()->normalizedChi2();
+  int muonHits = mu->globalTrack()->hitPattern().numberOfValidMuonHits(); 
+  int nStationMatches =mu->numberOfMatchedStations();
+  
+  if( chi2 < 10 ) return id;
+  if( trackerHits < 5) return id;
 
   id="L";
 
 
   if( muonHits<1 ) return id;
-  if( nMatches<2 ) return id;
+  if( nStationMatches<2 ) return id;
   if( pixelHits<1) return id;
   
   id="M";
     
   if( dxy> 0.2) return id;
+  if( dz> 0.5 ) return id;
 
   id="T";
 
@@ -378,35 +381,35 @@ AdvLeptonFilter::muID(const reco::Muon* mu) {
 }
 
 string 
-AdvLeptonFilter::elID(const reco::GsfElectronRef el) {
+AdvLeptonFilter::elID(std::vector<pat::Electron>::const_iterator el) {
 
   string id="N";
 
-  float chiso = (el.get())->pfIsolationVariables().chargedHadronIso;
-  float nhiso = (el.get())->pfIsolationVariables().neutralHadronIso;
-  float phiso = (el.get())->pfIsolationVariables().photonIso;
+  float chiso = el->chargedHadronIso();
+  float nhiso = el->neutralHadronIso();
+  float phiso = el->photonIso();
 
 
-  if(!EgammaCutBasedEleId::PassWP( EgammaCutBasedEleId::VETO, el , conversions_h_,
+  if(!EgammaCutBasedEleId::PassWP( EgammaCutBasedEleId::VETO, *el , conversions_h_,
 				   *(beamSpot_h_.product()), vertices_h_,
 				   chiso,phiso,nhiso, *(rho_h_.product()) ) ) {
     return id;
   }
   
   id="V";
-  if(!EgammaCutBasedEleId::PassWP( EgammaCutBasedEleId::LOOSE, el , conversions_h_,
+  if(!EgammaCutBasedEleId::PassWP( EgammaCutBasedEleId::LOOSE, *el , conversions_h_,
 				   *(beamSpot_h_.product()), vertices_h_,
 				   chiso,phiso,nhiso, *(rho_h_.product()) ) ) {
     return id;
   }
   id="L";
-  if(!EgammaCutBasedEleId::PassWP( EgammaCutBasedEleId::MEDIUM, el , conversions_h_,
+  if(!EgammaCutBasedEleId::PassWP( EgammaCutBasedEleId::MEDIUM, *el , conversions_h_,
 				   *(beamSpot_h_.product()), vertices_h_,
 				  chiso,phiso,nhiso, *(rho_h_.product()) ) ) {
     return id;
   }
   id="M";
-  if(!EgammaCutBasedEleId::PassWP( EgammaCutBasedEleId::TIGHT, el , conversions_h_,
+  if(!EgammaCutBasedEleId::PassWP( EgammaCutBasedEleId::TIGHT, *el , conversions_h_,
 				   *(beamSpot_h_.product()), vertices_h_,
 				   chiso,phiso,nhiso, *(rho_h_.product()) ) ) {
     return id;
@@ -444,7 +447,7 @@ AdvLeptonFilter::tauID(const pat::TauRef tau) {
 
 
 string 
-AdvLeptonFilter::photonID(const reco::Photon* ph) {
+AdvLeptonFilter::photonID(std::vector<pat::Photon>::const_iterator ph) {
 
   string id="N";
   
@@ -452,7 +455,7 @@ AdvLeptonFilter::photonID(const reco::Photon* ph) {
   float hoe = ph->hcalTowerSumEtConeDR04() + (ph->hadronicOverEm() - ph->hadTowOverEm())*ph->superCluster()->energy()/cosh(ph->superCluster()->eta());
   
   reco::VertexRef vtxRef( vertices_h_, 0 );
-  isolator.fGetIsolation(ph,pfcs_h_.product(), vtxRef, vertices_h_);
+  isolator.fGetIsolation( &(*ph),pfcs_h_.product(), vtxRef, vertices_h_);
 
   int etaB=findPhEtaBin( ph->eta() );
   float eaCh = phEACh[ etaB ];
@@ -463,7 +466,7 @@ AdvLeptonFilter::photonID(const reco::Photon* ph) {
   float chiso = max(isolator.getIsolationCharged()-eaCh*rho,(float)0.);
   float phiso = max(isolator.getIsolationPhoton()-eaPh*rho,(float)0.);
   float neiso = max(isolator.getIsolationNeutral()-eaNe*rho,(float)0.);
-  float conv = !ConversionTools::hasMatchedPromptElectron(ph->superCluster(), e_h, conversions_h_, (beamSpot_h_.product())->position());
+  float conv = true;//!ConversionTools::hasMatchedPromptElectron(ph->superCluster(), e_h, conversions_h_, (beamSpot_h_.product())->position());
 
   if(fabs( ph->eta() ) <1.5) {
 
@@ -505,7 +508,7 @@ int AdvLeptonFilter::findPhEtaBin( float eta ) {
 
   
 string 
-AdvLeptonFilter::jetID(const reco::PFJetRef jet) {
+AdvLeptonFilter::jetID(const pat::JetRef jet) {
 
   string id="V"; //no very loose requirement for jets, enabled by default
 
