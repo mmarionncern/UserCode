@@ -8,6 +8,7 @@
 <use   name="RecoEgamma/EgammaTools"/>
 <use   name="RecoTracker/TransientTrackingRecHit"/>
 <use   name="EGamma/EGammaAnalysisTools"/>
+<use   name="EgammaAnalysis/ElectronTools"/>
 <use   name="DataFormats/MuonReco"/>
 <use   name="DataFormats/PatCandidates"/>
 <use   name="DataFormats/JetReco"/>

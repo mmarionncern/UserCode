@@ -13,7 +13,7 @@
 //
 // Original Author:  Matthieu Pierre Marionneau,8 R-019,+41227675765,
 //         Created:  Tue Aug  7 11:56:39 CEST 2012
-// $Id$
+// $Id: AdvLeptonFilter.h,v 1.1 2012/08/07 10:51:51 mmarionn Exp $
 //
 //
 
@@ -53,9 +53,16 @@
 #include "DataFormats/EgammaCandidates/interface/ConversionFwd.h"
 #include "DataFormats/EgammaCandidates/interface/Conversion.h"
 
+#include "DataFormats/PatCandidates/interface/Electron.h"
+#include "DataFormats/PatCandidates/interface/Muon.h"
+#include "DataFormats/PatCandidates/interface/Photon.h"
+#include "DataFormats/PatCandidates/interface/Jet.h"
+#include "DataFormats/PatCandidates/interface/MET.h"
+
 #include "TVector3.h"
 
-#include "EGamma/EGammaAnalysisTools/interface/EGammaCutBasedEleId.h"
+//#include "EGamma/EGammaAnalysisTools/interface/EGammaCutBasedEleId.h"
+#include "EgammaAnalysis/ElectronTools/interface/EGammaCutBasedEleId.h"
 #include "EGamma/EGammaAnalysisTools/src/PFIsolationEstimator.cc"
 #include "RecoEgamma/EgammaTools/interface/ConversionTools.h"
 
@@ -109,12 +116,12 @@ class AdvLeptonFilter : public edm::EDFilter {
   vector<double> dePt_,dmPt_,dpPt_,dtPt_;
   vector<double> XemPt_,XetPt_,XmtPt_;
 
-  string muID(const reco::Muon* mu);
-  string elID(const reco::GsfElectronRef el);
+  string muID(std::vector<pat::Muon>::const_iterator mu);
+  string elID(std::vector<pat::Electron>::const_iterator it);
 
   string tauID(const pat::TauRef tau);
-  string photonID(const reco::Photon* ph);
-  string jetID(const reco::PFJetRef jet);
+  string photonID(std::vector<pat::Photon>::const_iterator ph);
+  string jetID(const pat::JetRef jet);
 
   int findPhEtaBin( float eta );
 
@@ -131,13 +138,13 @@ class AdvLeptonFilter : public edm::EDFilter {
   vector<pair<string,int> > counter;
 
   vector<int> thrs;
-
-  edm::Handle< reco::GsfElectronCollection  >  e_h;
-  edm::Handle< reco::MuonCollection  >      m_h;
+  
+  edm::Handle< std::vector<pat::Electron> > e_h;
+  edm::Handle< pat::MuonCollection  >      m_h;
   edm::Handle< pat::TauCollection  >      t_h;
-  edm::Handle< reco::PhotonCollection  >      p_h;
-  edm::Handle< reco::PFJetCollection  >      jets_h;
-  edm::Handle< reco::PFMETCollection > met_h;
+  edm::Handle< pat::PhotonCollection  >      p_h;
+  edm::Handle< pat::JetCollection  >      jets_h;
+  edm::Handle< std::vector<pat::MET> > met_h;
 
 
   edm::Handle<reco::BeamSpot> beamSpot_h_;

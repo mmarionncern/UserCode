@@ -3,7 +3,7 @@ import FWCore.ParameterSet.Config as cms
 
 AdvFilter = cms.EDFilter('AdvLeptonFilter',
 
-  ElectronInput = cms.InputTag('gsfElectrons'),
+  ElectronInput = cms.InputTag('patElectrons'),
   MuonInput = cms.InputTag('muons'),
   TauInput = cms.InputTag('selectedPatTaus'),                          
   PhotonInput = cms.InputTag('photons'),
