@@ -13,7 +13,7 @@
 //
 // Original Author:  Matthieu Pierre Marionneau,8 R-019,+41227675765,
 //         Created:  Tue Aug  7 11:56:39 CEST 2012
-// $Id: AdvLeptonFilter.cc,v 1.2 2012/08/29 15:11:33 mmarionn Exp $
+// $Id: AdvLeptonFilter.cc,v 1.3 2013/04/18 07:59:44 mmarionn Exp $
 //
 //
 #include "MMarionneau/AdvLeptonFilter/interface/AdvLeptonFilter.h"
@@ -352,7 +352,6 @@ AdvLeptonFilter::muID(std::vector<pat::Muon>::const_iterator mu) {
   
   reco::TrackRef track_ = mu->globalTrack();
   float dxy = (float)( track_->dxy(beamSpot_h_->position()));
-  float dz = (float)( track_->dz(beamSpot_h_->position()));
   int trackerHits = track_->hitPattern().trackerLayersWithMeasurement();
   int pixelHits = track_->hitPattern().numberOfValidPixelHits();
   float chi2=mu->globalTrack()->normalizedChi2();
@@ -371,9 +370,8 @@ AdvLeptonFilter::muID(std::vector<pat::Muon>::const_iterator mu) {
   
   id="M";
     
-  if( dxy> 0.2) return id;
-  if( dz> 0.5 ) return id;
-
+  if( dxy> 0.5) return id;
+  
   id="T";
 
   return id;
