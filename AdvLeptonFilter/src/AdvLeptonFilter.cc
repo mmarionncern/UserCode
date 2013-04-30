@@ -13,7 +13,7 @@
 //
 // Original Author:  Matthieu Pierre Marionneau,8 R-019,+41227675765,
 //         Created:  Tue Aug  7 11:56:39 CEST 2012
-// $Id: AdvLeptonFilter.cc,v 1.3 2013/04/18 07:59:44 mmarionn Exp $
+// $Id: AdvLeptonFilter.cc,v 1.4 2013/04/29 12:57:37 mmarionn Exp $
 //
 //
 #include "MMarionneau/AdvLeptonFilter/interface/AdvLeptonFilter.h"
@@ -358,7 +358,7 @@ AdvLeptonFilter::muID(std::vector<pat::Muon>::const_iterator mu) {
   int muonHits = mu->globalTrack()->hitPattern().numberOfValidMuonHits(); 
   int nStationMatches =mu->numberOfMatchedStations();
   
-  if( chi2 < 10 ) return id;
+  if( chi2 > 10 ) return id;
   if( trackerHits < 5) return id;
 
   id="L";
@@ -370,7 +370,7 @@ AdvLeptonFilter::muID(std::vector<pat::Muon>::const_iterator mu) {
   
   id="M";
     
-  if( dxy> 0.5) return id;
+  if( dxy> 1.) return id;
   
   id="T";
 

@@ -9,7 +9,7 @@ AdvFilter = cms.EDFilter('AdvLeptonFilter',
   PhotonInput = cms.InputTag('patPhotons'),
   PFJetInput = cms.InputTag('patJets'), #   ak5PFJetsL1L2L3                 
 
-  MetInput = cms.InputTag('patType1CorrectedPFMet'), #pfType1CorrectedMet
+  MetInput = cms.InputTag('patMETsPF'), #pfType1CorrectedMet #patType1CorrectedPFMet
 
 ### selections follow the convention :
 ### e -> electron, m -> muon, t -> tau (hadronic), p -> photon, j -> jet, h -> MET
@@ -17,14 +17,14 @@ AdvFilter = cms.EDFilter('AdvLeptonFilter',
 ###
 ### available ID working point : very loose V, loose L, medium M and tight T
 ### for electrons and photons -> official cut based IDs including isolation
-### for muons -> tight ID corresponds to the nominal VBTF ID
+### for muons -> tight ID corresponds to the nominal VBTF ID, #FIXME except the dxy cut which is relaxed
 ### for taus -> ID corresponds to isolation for very loose, loose and medium IDs,
 ###             tight ID corresponds to medium ID + loose electron/muon discriminators                        
 ### for jets -> no very loose Id, official ID provided by the JetMET group
 ### for MET -> no ID available                         
 ###
 ### The ! statement : if a ! replace the number of objects requested, the event is vetoed if a such object
-### exists (e.g : !j_50 which rejects events containing a jet with a pT > 50 GeV)
+### exists (e.g : !j_50 which rejects events containing at least one jet with pT > 50 GeV)
 ### MM 08/29/12 : Need to be tested when it is used with an ID working point but it should work                         
 ###
 ###                         
