@@ -13,7 +13,7 @@
 //
 // Original Author:  Matthieu Pierre Marionneau,8 R-019,+41227675765,
 //         Created:  Tue Aug  7 11:56:39 CEST 2012
-// $Id: AdvLeptonFilter.cc,v 1.4 2013/04/29 12:57:37 mmarionn Exp $
+// $Id: AdvLeptonFilter.cc,v 1.5 2013/04/30 09:09:08 mmarionn Exp $
 //
 //
 #include "MMarionneau/AdvLeptonFilter/interface/AdvLeptonFilter.h"
@@ -424,16 +424,16 @@ AdvLeptonFilter::tauID(const pat::TauRef tau) {
 
   string id="N";
 
-  if(tau->tauID("byVLooseCombinedIsolationDeltaBetaCorr") ) {
+  if(tau->tauID("byVLooseCombinedIsolationDeltaBetaCorr3Hits") ) {
     id="V";
   }
-  if(tau->tauID("byLooseCombinedIsolationDeltaBetaCorr")) {
+  if(tau->tauID("byLooseCombinedIsolationDeltaBetaCorr3Hits")) {
     id="L";
   }
-  if(tau->tauID("byMediumCombinedIsolationDeltaBetaCorr")) {
+  if(tau->tauID("byMediumCombinedIsolationDeltaBetaCorr3Hits")) {
     id="M";
   }
-  if(tau->tauID("byMediumCombinedIsolationDeltaBetaCorr") && 
+  if(tau->tauID("byMediumCombinedIsolationDeltaBetaCorr3Hits") && 
      tau->tauID("againstMuonLoose") &&
      tau->tauID("againstElectronLoose") ) {
     id="T";
