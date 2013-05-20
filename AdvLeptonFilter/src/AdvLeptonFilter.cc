@@ -13,7 +13,7 @@
 //
 // Original Author:  Matthieu Pierre Marionneau,8 R-019,+41227675765,
 //         Created:  Tue Aug  7 11:56:39 CEST 2012
-// $Id: AdvLeptonFilter.cc,v 1.5 2013/04/30 09:09:08 mmarionn Exp $
+// $Id: AdvLeptonFilter.cc,v 1.6 2013/05/10 15:09:03 mmarionn Exp $
 //
 //
 #include "MMarionneau/AdvLeptonFilter/interface/AdvLeptonFilter.h"
@@ -424,7 +424,7 @@ AdvLeptonFilter::tauID(const pat::TauRef tau) {
 
   string id="N";
 
-  if(tau->tauID("byVLooseCombinedIsolationDeltaBetaCorr3Hits") ) {
+  if(tau->tauID("byVLooseCombinedIsolationDeltaBetaCorr") ) {
     id="V";
   }
   if(tau->tauID("byLooseCombinedIsolationDeltaBetaCorr3Hits")) {
